@@ -7,6 +7,54 @@
 export function generateDesignAdvice(analysis, gameModule) {
   const recommendations = [];
 
+  // Diagnósticos específicos de componentes cuando el juego incluye auditoría matemática de cartas/fichas (ej. LA TERCERA IPA)
+  if (gameModule.id === 'la_tercera_ipa' && gameModule.customAuditData) {
+    recommendations.push(
+      {
+        severity: 'high',
+        badge: 'Cuello de Botella en 6 Jugadores',
+        title: 'Déficit crítico de Lúpulo en partidas de 6 jugadores (22 fichas en caja vs 25-27 necesarias)',
+        description: 'TODAS las recetas del juego piden Lúpulo (cada jugador necesita entre 4 y 5 Lúpulos para sus 3 vasos). En una partida de 6 jugadores, la mesa demanda entre 25 y 27 Lúpulos en total, pero solo existen 22 fichas de Lúpulo (+2 comodines). Como las fichas que entran en un vaso cerrado NUNCA vuelven al descarte, cuando los 6 jugadores llevan 2 vasos cerrados se agotan literalmente todos los Lúpulos del mazo.',
+        fix: 'Sube el Lúpulo de 22 a 28 fichas (o añade +2 Agua Pura comodín y baja Pino/Resina de 7 a 4 fichas). Alternativamente, que una receta de 3 ingredientes (ej. Milkshake IPA o Brut IPA) no lleve Lúpulo sino Malta + Especial + Especial.'
+      },
+      {
+        severity: 'high',
+        badge: 'Carta Especial Casi Injugable',
+        title: 'La carta "Trasvase (x3)" queda muerta si se roba en el 2º vaso',
+        description: 'Solo se roban Cartas de Maestro Cervecero al completar el 1º y el 2º vaso. "Trasvase" mueve 1 ficha entre dos vasos tuyos QUE NO ESTÉN COMPLETADOS. Si la robas como recompensa al cerrar tu 2º vaso, ¡solo te queda 1 vaso abierto! Es 100% ilegal jugarla y te ocupa 1 hueco de tu límite de 5 elementos.',
+        fix: 'Permite que "Trasvase" también pueda: A) Intercambiar 1 ficha de un vaso tuyo abierto por 1 ficha del Mercado o de tu reserva, o B) Mover 1 ficha entre dos vasos abiertos de CUALQUIER jugador (sirviendo como sabotaje táctico).'
+      },
+      {
+        severity: 'medium',
+        badge: 'Desproporción en el Mazo (84 fichas)',
+        title: 'Sobran fichas de "Pino / Resina" (7 fichas) y faltan "Lactosa / Especias" (6 fichas)',
+        description: '"Pino / Resina" tiene 7 fichas en el mazo, pero SOLO se usa en 1 receta de todo el juego (West Coast IPA, presente solo en las Cartas de Bar 10, 11 y 12, pidiendo 1 unidad). En una partida de 6 jugadores se necesitan de media 1,5 fichas de Pino, por lo que 5-6 fichas de Pino inundan y atascan el Mercado. En cambio, "Lactosa / Especias" solo tiene 6 fichas pero se pide 8 veces en las Cartas de Bar (¡y la Carta 12 pide 2 Lactosas ella sola!).',
+        fix: 'Ajusta el desglose de especiales sin cambiar el total de 84 fichas: Pino/Resina baja de 7 a 4; Lactosa/Especias sube de 6 a 7; Fruta Tropical se mantiene en 7 o sube a 8; Agua Pura (Comodín) sube de 2 a 3.'
+      },
+      {
+        severity: 'medium',
+        badge: 'Asimetría en Cartas de Bar #3, #7, #8, #9 y #12',
+        title: 'Las Cartas de Bar #12 y #3 son mucho más difíciles que las Cartas #1 y #4',
+        description: 'La Carta #12 (West Coast + Brut + Milkshake) exige 2 fichas de Lactosa (el 33% de todas las que existen en el juego) + 1 Pino + 1 Fruta Tropical (4 especiales en total). La Carta #3 exige 2 Frutas Tropicales + 1 Lactosa. En cambio, la Carta #1 (English + Session + NEIPA) solo pide 1 ingrediente especial en total (1 Fruta Tropical) y el resto son básicos abundantes.',
+        fix: 'Regla de diseño para las 12 Cartas de Bar: ninguna Carta de Bar debería repetir 2 veces el mismo ingrediente especial escaso (como ocurre en la Carta #3 con 2 Frutas Tropicales y en la Carta #12 con 2 Lactosas), y todas deberían pedir exactamente 2 ingredientes especiales en total.'
+      },
+      {
+        severity: 'medium',
+        badge: 'Laguna de Verificación en Mesa',
+        title: '¿Cómo se verifica "¡Cerveza lista!" en el 1º y 2º vaso si las recetas son secretas?',
+        description: 'Las reglas dicen que "nadie puede ver las recetas de los demás" y que al cantar "¡Cerveza lista!" en tu 1º o 2º vaso robas 1 Carta de Maestro Cervecero y ese vaso queda "cerrado y protegido contra Contaminación". Si el jugador mete las fichas ocultas y no enseña su Carta de Bar hasta el 3º vaso, nadie puede comprobar si el vaso 1 o 2 tiene realmente una receta válida o si se equivocó.',
+        fix: 'Aclara en la sección 3.B: cuando completas un vaso y dices "¡Cerveza lista!", debes revelar las 3 o 4 fichas de ese vaso boca arriba junto al vaso indicando qué estilo de IPA es (ej. "Cierro una Black IPA: Malta + Lúpulo + Café"), manteniendo tu Carta de Bar en secreto hasta final de partida.'
+      },
+      {
+        severity: 'idea',
+        badge: 'Acción E Poco Atractiva',
+        title: 'La Acción E (Renovar el Mercado) da solo 1 ficha frente a las 2 de Cosechar (Acción A)',
+        description: 'En las simulaciones, elegir Acción E supone perder un 50% de economía de fichas en ese turno (robas 1 en vez de 2) y además le dejas el mercado recién renovado gratis al jugador sentado a tu izquierda.',
+        fix: 'Mejora la Acción E ("Renovar el Mercado"): Descarta el Mercado, rellénalo y luego realiza una acción de Cosechar normal (o roba 1 del nuevo Mercado + 1 a ciegas del mazo).'
+      }
+    );
+  }
+
   // 1. Detección de bucles infinitos o partidas estancadas
   const stalledCounts = analysis.scalingRows.filter(r => r.stallRate > 0.02);
   if (stalledCounts.length > 0) {

@@ -11,9 +11,16 @@ import { generateDesignAdvice } from './engine/advisor.js';
 import { parseDraftRulebook, SAMPLE_DRAFT_RULEBOOK } from './engine/ruleParser.js';
 import { renderDashboard } from './ui/renderer.js';
 
-let currentGameId = 'flawed_prototype';
+let currentGameId = 'la_tercera_ipa';
 
 document.addEventListener('DOMContentLoaded', () => {
+  // Por defecto activar 4, 5 y 6 jugadores para La Tercera IPA
+  const checkboxes = document.querySelectorAll('#playerCountToggles input[type="checkbox"]');
+  checkboxes.forEach(cb => {
+    const val = Number(cb.value);
+    cb.checked = (val >= 4 && val <= 6);
+  });
+
   initGameSelector();
   initSidebarControls();
   initTabs();

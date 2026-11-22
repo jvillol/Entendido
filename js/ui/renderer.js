@@ -52,6 +52,7 @@ export function renderDashboard(simReport, analysis, recommendations, gameModule
   // Pestaña 3 (Auditoría de Reglas)
   renderRuleUsageTable(analysis.actionAudit);
   renderStaticChecklist(analysis.staticChecklist);
+  renderCustomComponentAudit(gameModule.customAuditData);
 
   // Pestaña 4 (Ideas, Errores y Parches)
   renderAdvisorCards(recommendations);
@@ -203,6 +204,95 @@ function renderStaticChecklist(checks) {
       </div>
     </div>
   `).join('');
+}
+
+function renderCustomComponentAudit(auditData) {
+  const container = document.getElementById('customComponentAuditSection');
+  if (!container) return;
+  if (!auditData) {
+    container.innerHTML = '';
+    return;
+  }
+
+  const ingRows = auditData.ingredientAudits.map(ing => `
+    <tr>
+      <td><strong>${ing.name}</strong> <span class="badge badge-accent">${ing.type}</span></td>
+      <td><strong>${ing.count}</strong> fichas</td>
+      <td>${ing.totalDemand12} en las 12 cartas</td>
+      <td>Media: <strong>${ing.avgDemand6P}</strong> (Máx: <strong>${ing.maxDemand6P}</strong>)</td>
+      <td><span class="badge ${ing.verdictClass}">${ing.verdict}</span></td>
+    </tr>
+  `).join('');
+
+  const cardRows = auditData.cardAudits.map(c => {
+    const ingSummary = Object.entries(c.totals)
+      .map(([k, v]) => `${v}× ${k.replace('_', ' ')}`)
+      .join(', ');
+    const difficultyBadge = c.scarcityScore >= 60
+      ? '<span class="badge badge-danger">Alta Dificultad (Cuello de botella)</span>'
+      : (c.scarcityScore >= 48
+          ? '<span class="badge badge-warn">Dificultad Media-Alta</span>'
+          : '<span class="badge badge-ok">Equilibrada</span>');
+
+    return `
+      <tr>
+        <td><strong>${c.name}</strong></td>
+        <td>${c.recipeNames.join(' + ')}</td>
+        <td><code>${ingSummary}</code></td>
+        <td><strong>${c.scarcityScore}</strong> pts</td>
+        <td>
+          ${difficultyBadge}
+          ${c.bottlenecks.length ? `<div class="helper-text" style="margin-top:3px;">⚠️ Exige: ${c.bottlenecks.join(', ')}</div>` : ''}
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  container.innerHTML = `
+    <div class="panel-grid-2">
+      <div class="card">
+        <div class="card-header">
+          <h3>Auditoría Matemática del Mazo de Ingredientes (${auditData.totalTiles} Fichas)</h3>
+          <p>Oferta en la caja vs. Demanda real cuando los jugadores bloquean fichas dentro de sus vasos.</p>
+        </div>
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Ingrediente</th>
+                <th>En Caja</th>
+                <th>Demanda Total (12 Cartas)</th>
+                <th>Demanda en 6 Jugadores</th>
+                <th>Diagnóstico de Stock</th>
+              </tr>
+            </thead>
+            <tbody>${ingRows}</tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h3>Auditoría de Simetría de las 12 Cartas de Bar</h3>
+          <p>Compara la dificultad real de completar cada Carta de Bar según la escasez de los ingredientes que pide.</p>
+        </div>
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Carta</th>
+                <th>3 Recetas (4 + 3 + 3)</th>
+                <th>Total Ingredientes (10)</th>
+                <th>Índice Escasez</th>
+                <th>Equilibrio de Carta</th>
+              </tr>
+            </thead>
+            <tbody>${cardRows}</tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  `;
 }
 
 function renderAdvisorCards(recommendations) {
