@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Entendido — Laboratorio y Simulador de Juegos de Mesa</title>
+  <link rel="stylesheet" href="css/variables.css" />
+  <link rel="stylesheet" href="css/layout.css" />
+  <link rel="stylesheet" href="css/components.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <!-- Sidebar: Selector de Juegos y Configurador de Simulación -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-icon">🎲</div>
+        <div>
+          <h1>Entendido</h1>
+          <p class="brand-subtitle">Playtesting &amp; Auditoría de Reglas</p>
+        </div>
+      </div>
+
+      <section class="sidebar-section">
+        <label class="section-label" for="gameSelect">Juego a Analizar</label>
+        <select id="gameSelect" class="input-select"></select>
+        <p id="gameShortDesc" class="helper-text"></p>
+      </section>
+
+      <section class="sidebar-section">
+        <span class="section-label">Rangos de Jugadores a Probar</span>
+        <div id="playerCountToggles" class="player-pills">
+          <label class="pill-checkbox"><input type="checkbox" value="2" checked /> <span>2J</span></label>
+          <label class="pill-checkbox"><input type="checkbox" value="3" checked /> <span>3J</span></label>
+          <label class="pill-checkbox"><input type="checkbox" value="4" checked /> <span>4J</span></label>
+          <label class="pill-checkbox"><input type="checkbox" value="5" checked /> <span>5J</span></label>
+          <label class="pill-checkbox"><input type="checkbox" value="6" /> <span>6J</span></label>
+        </div>
+      </section>
+
+      <section class="sidebar-section">
+        <label class="section-label" for="iterationsInput">
+          Partidas por Nº de Jugadores: <strong id="iterationsLabel">300</strong>
+        </label>
+        <input id="iterationsInput" type="range" min="50" max="1000" step="50" value="300" class="input-range" />
+        <div class="range-labels">
+          <span>50 (Rápido)</span>
+          <span>500</span>
+          <span>1000 (Profundo)</span>
+        </div>
+      </section>
+
+      <section class="sidebar-section">
+        <label class="section-label" for="maxTurnsInput">
+          Límite de Turnos (Detector Bucle): <strong id="maxTurnsLabel">100</strong>
+        </label>
+        <input id="maxTurnsInput" type="range" min="20" max="300" step="10" value="100" class="input-range" />
+      </section>
+
+      <div class="sidebar-actions">
+        <button id="runSimBtn" class="btn btn-primary btn-block">
+          ▶ Simular y Auditar Partidas
+        </button>
+        <button id="openRulesModalBtn" class="btn btn-secondary btn-block">
+          📝 Pegar / Editar Instrucciones
+        </button>
+      </div>
+
+      <div class="sidebar-footer">
+        <div class="workflow-tip">
+          <strong>Flujo de trabajo:</strong>
+          <p>Pega aquí tus reglas para un análisis inmediato o pásaselas al asistente en el chat para codificar su motor exacto en <code>js/games/</code>.</p>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Contenido Principal -->
+    <main class="main-content">
+      <!-- Cabecera de Estado y KPIs Globales -->
+      <header class="topbar">
+        <div>
+          <div class="badge-row">
+            <span id="activeGameBadge" class="badge badge-accent">Juego Activo</span>
+            <span id="simTimestamp" class="sim-meta">Listo para simular</span>
+          </div>
+          <h2 id="activeGameTitle">Cargando laboratorio...</h2>
+        </div>
+        <div class="topbar-stats" id="globalVerdictContainer"></div>
+      </header>
+
+      <!-- Tarjetas de Puntuación de Salud (4 Pilares) -->
+      <section class="kpi-grid" id="healthKpiGrid"></section>
+
+      <!-- Navegación por Pestañas -->
+      <nav class="tabs-nav" aria-label="Vistas del análisis">
+        <button class="tab-btn active" data-tab="tab-balance">⚖️ Equilibrio y Escalado</button>
+        <button class="tab-btn" data-tab="tab-fun">🎢 Ritmo y Entretenimiento</button>
+        <button class="tab-btn" data-tab="tab-rules">🔍 Auditoría de Reglas y Mecánicas</button>
+        <button class="tab-btn" data-tab="tab-ideas">💡 Errores, Parches e Ideas</button>
+        <button class="tab-btn" data-tab="tab-rulebook">📜 Instrucciones y Parámetros</button>
+        <button class="tab-btn" data-tab="tab-logs">🎬 Crónica de Partidas</button>
+      </nav>
+
+      <!-- Contenedores de Pestañas -->
+      <div class="tab-panels">
+        <!-- TAB 1: EQUILIBRIO Y ESCALADO -->
+        <section id="tab-balance" class="tab-panel active">
+          <div class="panel-grid-2">
+            <div class="card">
+              <div class="card-header">
+                <h3>Ventaja por Turno / Asiento (Efecto Primer Jugador)</h3>
+                <p>Comprueba si empezar primero o último otorga ventaja injusta según la cantidad de jugadores.</p>
+              </div>
+              <div id="seatWinRateChart" class="chart-box"></div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <h3>Rendimiento por Arquetipo / Estrategia</h3>
+                <p>Porcentaje de victorias según la personalidad del jugador simulado (Agresivo, Económico, Equilibrado, Caótico, Táctico).</p>
+              </div>
+              <div id="strategyWinRateChart" class="chart-box"></div>
+            </div>
+          </div>
+
+          <div class="card mt-lg">
+            <div class="card-header">
+              <h3>Comparativa Multi-Jugador (Escalado de 2 a 6+ Jugadores)</h3>
+              <p>Analiza cómo cambia la duración, puntuación, bloqueos y equilibrio al variar el número de personas en la mesa.</p>
+            </div>
+            <div class="table-responsive">
+              <table class="data-table" id="scalingComparisonTable">
+                <thead>
+                  <tr>
+                    <th>Jugadores</th>
+                    <th>Partidas</th>
+                    <th>Duración Media (Turnos / Min)</th>
+                    <th>Desviación Asiento 1º</th>
+                    <th>Estrategia Dominante</th>
+                    <th>Partidas Atascadas / Bucle</th>
+                    <th>Veredicto Escalado</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- TAB 2: RITMO Y ENTRETENIMIENTO -->
+        <section id="tab-fun" class="tab-panel">
+          <div class="panel-grid-2">
+            <div class="card">
+              <div class="card-header">
+                <h3>Curva de Tensión y Remontadas (Efecto Bola de Nieve)</h3>
+                <p>Evalúa si el líder en la mitad de la partida gana siempre (aburrido/predecible) o si hay emoción hasta el final.</p>
+              </div>
+              <div id="funMetricsChart" class="chart-box"></div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <h3>Distribución de Duración y Tiempos Muertos</h3>
+                <p>Detecta si el juego se alarga artificialmente, si hay turnos vacíos ("pasar sin hacer nada") o eliminación temprana.</p>
+              </div>
+              <div id="durationMetricsChart" class="chart-box"></div>
+            </div>
+          </div>
+
+          <div class="card mt-lg">
+            <div class="card-header">
+              <h3>Indicadores de Experiencia en Mesa</h3>
+            </div>
+            <div id="experienceBreakdownGrid" class="metrics-detail-grid"></div>
+          </div>
+        </section>
+
+        <!-- TAB 3: AUDITORÍA DE REGLAS Y MECÁNICAS -->
+        <section id="tab-rules" class="tab-panel">
+          <div class="panel-grid-2">
+            <div class="card">
+              <div class="card-header">
+                <h3>Uso de Acciones y Reglas (Detector de Reglas Muertas o Rotas)</h3>
+                <p>Frecuencia con la que los jugadores eligen o activan cada acción/mecánica y su correlación con ganar.</p>
+              </div>
+              <div id="ruleUsageTableContainer" class="table-responsive"></div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <h3>Auditoría Estática del Reglamento</h3>
+                <p>Comprobación de casos límite frecuentes en juegos de mesa (desempates, agotamiento de componentes, condición de fin).</p>
+              </div>
+              <div id="staticRuleChecklist" class="checklist-container"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- TAB 4: ERRORES, PARCHES E IDEAS -->
+        <section id="tab-ideas" class="tab-panel">
+          <div class="card">
+            <div class="card-header">
+              <h3>Diagnóstico Automático, Corrección de Errores e Ideas de Diseño</h3>
+              <p>Propuestas concretas basadas en las anomalías detectadas durante miles de partidas simuladas.</p>
+            </div>
+            <div id="advisorCardsContainer" class="advisor-list"></div>
+          </div>
+        </section>
+
+        <!-- TAB 5: INSTRUCCIONES Y PARÁMETROS -->
+        <section id="tab-rulebook" class="tab-panel">
+          <div class="panel-grid-2">
+            <div class="card">
+              <div class="card-header">
+                <h3>Redacción de Instrucciones del Juego</h3>
+                <p>Escribe o pega aquí el borrador de tus reglas. El analizador detectará mecánicas, vacíos legales y ajustará el simulador.</p>
+              </div>
+              <div class="form-group">
+                <label for="customGameName">Nombre del Juego</label>
+                <input type="text" id="customGameName" class="input-text" placeholder="Ej: Mercaderes del Abismo" />
+              </div>
+              <div class="form-group">
+                <label for="customRulebookText">Reglamento / Instrucciones Redactadas</label>
+                <textarea id="customRulebookText" class="input-textarea" rows="14" placeholder="Pega aquí las reglas completas de tu juego de mesa: componentes, preparación, turno del jugador, acciones disponibles, combate/interacción y final de la partida..."></textarea>
+              </div>
+              <div class="btn-row">
+                <button id="analyzeCustomRulesBtn" class="btn btn-primary">🔍 Analizar Texto y Simular Reglas</button>
+                <button id="loadSampleDraftBtn" class="btn btn-secondary">📄 Cargar Borrador de Ejemplo</button>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <h3>Mecánicas y Acciones Detectadas</h3>
+                <p>Estructura extraída del reglamento y parámetros de simulación activos.</p>
+              </div>
+              <div id="parsedMechanicsContainer"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- TAB 6: CRÓNICA DE PARTIDAS -->
+        <section id="tab-logs" class="tab-panel">
+          <div class="card">
+            <div class="card-header flex-between">
+              <div>
+                <h3>Inspector de Partidas Paso a Paso</h3>
+                <p>Revisa partidas reales generadas por el simulador (incluyendo partidas normales, extremas o bloqueadas).</p>
+              </div>
+              <div class="filter-controls">
+                <label for="sampleMatchSelect">Partida registrada:</label>
+                <select id="sampleMatchSelect" class="input-select-sm"></select>
+              </div>
+            </div>
+            <div id="matchLogViewer" class="match-log-viewer"></div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
