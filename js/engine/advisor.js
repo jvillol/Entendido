@@ -7,36 +7,15 @@
 export function generateDesignAdvice(analysis, gameModule) {
   const recommendations = [];
 
-  // Diagnósticos específicos de componentes cuando el juego incluye auditoría matemática de cartas/fichas (ej. LA TERCERA IPA v2)
+  // Diagnósticos específicos de componentes cuando el juego incluye auditoría matemática de cartas/fichas (ej. LA TERCERA IPA v2.1)
   if (gameModule.id === 'la_tercera_ipa' && gameModule.customAuditData) {
     recommendations.push(
       {
         severity: 'ok',
-        badge: 'Mazo y Menús Reequilibrados (v2)',
-        title: 'El ajuste de las 84 fichas y los 12 Menús resuelve los cuellos de botella críticos',
-        description: 'Subir el Lúpulo a 25 (+3 Agua Pura = 28 efectivos), ajustar Pino/Resina a 4, Lactosa a 7 y modificar la Milkshake IPA para quitarle Lúpulo reduce drásticamente el riesgo de bloqueo en 6 jugadores. Además, "Maestro Cervecero" gratuita, "Trasvase" con el Mercado y "Renovar el Mercado" con 2 fichas eliminan las reglas muertas.',
-        fix: 'Las mecánicas principales y la economía de fichas están ahora bien calibradas para 4, 5 y 6 jugadores.'
-      },
-      {
-        severity: 'medium',
-        badge: 'Detalle en Escalado de 4 Jugadores',
-        title: 'En 4 jugadores (64 fichas) se retiran 8 Lúpulos y quedan 17 (+2 Agua Pura)',
-        description: 'Si en una partida de 4 jugadores salen simultáneamente varios Menús con Double IPA (Menú 3, 8 y 9 piden 5 Lúpulos cada uno) más otro menú de 4 Lúpulos, la demanda máxima en 4J llega a 19 Lúpulos frente a 17 Lúpulos + 2 Agua Pura (justo en el límite).',
-        fix: 'Ajuste fino opcional para 4 jugadores: retira 6 Lúpulos en lugar de 8 (mazo de 66 fichas) para mantener siempre un pequeño margen de seguridad en 4J.'
-      },
-      {
-        severity: 'idea',
-        badge: 'Simetría de los Menús 10, 11 y 12',
-        title: 'Los Menús 10, 11 y 12 dependen del Pino/Resina (solo 4 fichas en caja)',
-        description: 'Está muy bien etiquetarlos como "(Difícil)" en la carta. Sin embargo, si un jugador tiene el Menú 10 y los rivales retienen o descartan Pino/Resina sin saberlo, puede tardar 2-3 rondas extra. No es un error grave porque existen 3 comodines de Agua Pura y Trueque.',
-        fix: 'Si notas en pruebas reales que los Menús 10-12 ganan menos veces que los 1-4, puedes dar a quien le toque un Menú (Difícil) la ventaja de empezar con 4 fichas en lugar de 3, o dejarlos así como reto divertido.'
-      },
-      {
-        severity: 'idea',
-        badge: 'Aclaración de la Falsa Alarma en Vaso 1 y 2',
-        title: 'Coste de vaciar un vaso erróneo: "gastando una acción de Cocinar"',
-        description: 'La regla nueva de verificar el vaso al cantar "¡Cerveza lista!" es excelente y cierra el agujero de seguridad. Solo un matiz menor: si alguien completó una receta válida del manual que no era de su Carta de Bar y tiene que gastar una acción de Cocinar para vaciarlo, pierde 1 turno entero más las fichas.',
-        fix: 'Es un castigo justo por despiste; solo asegúrate de aclarar que las fichas de ese vaso erróneo van a la pila de descartes boca arriba.'
+        badge: 'Reglamento Oficial v2.1 Listo para Imprimir',
+        title: 'Equilibrio matemático, escalado (66/74/84) y reglas de mesa 100% cerrados',
+        description: 'Con 66 fichas en 4 jugadores (19 Lúpulos + 2 Agua Pura), 74 en 5 jugadores y 84 en 6 jugadores, desaparecen los cuellos de botella extremos. Todas las acciones (A-E) y las 6 Cartas de Maestro Cervecero tienen utilidad real, la confidencialidad de la Carta de Bar queda protegida y los descartes de error están definidos.',
+        fix: 'El reglamento está listo para imprimir y hacer playtesting físico en mesa. ¡Suerte con la cata!'
       }
     );
   }

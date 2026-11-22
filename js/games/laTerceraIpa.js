@@ -190,17 +190,17 @@ export function auditBarCardsAndIngredients() {
 
 export const laTerceraIpaGame = {
   id: 'la_tercera_ipa',
-  name: '🍺 LA TERCERA IPA (v2 Reequilibrada — 4 a 6 Jugadores)',
-  shortDescription: 'Versión ajustada: mazo escalado (64/74/84 fichas), 12 Menús equilibrados, Maestro Cervecero gratuita y Trasvase versátil.',
+  name: '🍺 LA TERCERA IPA (v2.1 Definitiva — 4 a 6 Jugadores)',
+  shortDescription: 'Reglamento Oficial v2.1 listo para imprimir: mazos escalados (66/74/84 fichas), 12 Menús equilibrados y reglas 100% cerradas.',
   minutesPerPlayerTurn: 0.6,
   targetDurationMax: 35,
-  hasGuaranteedProgression: false,
+  hasGuaranteedProgression: true,
   customAuditData: auditBarCardsAndIngredients(),
-  rulebookText: `LA TERCERA IPA (v2) — 4 a 6 jugadores | 25 - 35 minutos
-- MAZO ESCALADO: 6J (84 fichas / 5 Mercado), 5J (74 fichas / 4 Mercado), 4J (64 fichas / 3 Mercado).
-- CARTAS DE BAR: 12 Menús reequilibrados (Fácil, Media y Difícil).
+  rulebookText: `LA TERCERA IPA (v2.1 Definitiva) — 4 a 6 jugadores | 25 - 35 minutos
+- MAZO ESCALADO: 6J (84 fichas / 5 Mercado), 5J (74 fichas / 4 Mercado), 4J (66 fichas / 3 Mercado — retira 6 Lúpulos, 7 Maltas, 4 Levaduras, 1 Agua Pura).
+- CARTAS DE BAR: 12 Menús reequilibrados (Fácil, Media y Difícil), confidenciales hasta la victoria.
 - TURNO (1 acción principal): A. Cosechar (2 fichas), B. Cocinar (hasta 2 fichas + Carta "Maestro Cervecero" gratuita hasta 4), C. Trueque, D. Carta Especial, E. Renovar Mercado (2 fichas: 1 del nuevo Mercado + 1 del mazo).
-- VERIFICACIÓN: Al cantar "¡Cerveza lista!" en vaso 1 y 2 muestras las fichas de ese vaso (sin enseñar la Carta de Bar).`,
+- VERIFICACIÓN Y DESCARTES: Al cantar "¡Cerveza lista!" en vaso 1 y 2 muestras las fichas de ese vaso (sin enseñar la Carta de Bar). Si hay error de receta, las fichas vaciadas van boca arriba al descarte.`,
   initialState: {
     vp: 0,
     resources: 3,
