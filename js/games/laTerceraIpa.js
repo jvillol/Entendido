@@ -1,20 +1,22 @@
 /**
  * js/games/laTerceraIpa.js
- * Implementación fiel y completa del juego "LA TERCERA IPA" (4 a 6 jugadores, + soporte 2-3J para pruebas).
- * Incluye el inventario exacto de 84 fichas de ingredientes, las 9 recetas de IPA,
- * las 12 Cartas de Bar, las 18 Cartas de Maestro Cervecero, los 3 vasos por jugador
- * y las 5 acciones del turno con límite de reserva de 5 elementos.
+ * Implementación fiel de "LA TERCERA IPA" (Versión 2 Reequilibrada — 4 a 6 jugadores).
+ * Incluye:
+ * - Inventario de 84 fichas (6J), 74 fichas (5J) y 64 fichas (4J)
+ * - Milkshake IPA actualizada (1 Malta + 1 Fruta Tropical + 1 Lactosa/Especias)
+ * - Los 12 Menús de Cartas de Bar reequilibrados
+ * - Maestro Cervecero gratuita junto a Cocinar, Trasvase ampliada, Acción E mejorada y verificación de vasos
  */
 
 export const INGREDIENT_DECK_SPEC = [
-  { id: 'lupulo', name: 'Lúpulo', type: 'basico', count: 22 },
-  { id: 'malta', name: 'Malta', type: 'basico', count: 20 },
-  { id: 'levadura', name: 'Levadura', type: 'basico', count: 14 },
+  { id: 'lupulo', name: 'Lúpulo', type: 'basico', count: 25 },
+  { id: 'malta', name: 'Malta', type: 'basico', count: 21 },
+  { id: 'levadura', name: 'Levadura', type: 'basico', count: 12 },
   { id: 'fruta_tropical', name: 'Fruta Tropical', type: 'especial', count: 7 },
-  { id: 'pino_resina', name: 'Pino / Resina', type: 'especial', count: 7 },
-  { id: 'cafe_cacao', name: 'Café / Cacao', type: 'especial', count: 6 },
-  { id: 'lactosa_especias', name: 'Lactosa / Especias', type: 'especial', count: 6 },
-  { id: 'agua_pura', name: 'Agua Pura (Comodín)', type: 'comodin', count: 2 }
+  { id: 'lactosa_especias', name: 'Lactosa / Especias', type: 'especial', count: 7 },
+  { id: 'cafe_cacao', name: 'Café / Cacao', type: 'especial', count: 5 },
+  { id: 'pino_resina', name: 'Pino / Resina', type: 'especial', count: 4 },
+  { id: 'agua_pura', name: 'Agua Pura (Comodín)', type: 'comodin', count: 3 }
 ];
 
 export const IPA_RECIPES = {
@@ -66,7 +68,7 @@ export const IPA_RECIPES = {
     id: 'milkshake_ipa',
     name: 'Milkshake IPA',
     size: 3,
-    ingredients: { lupulo: 1, fruta_tropical: 1, lactosa_especias: 1 }
+    ingredients: { malta: 1, fruta_tropical: 1, lactosa_especias: 1 }
   },
   brut_ipa: {
     id: 'brut_ipa',
@@ -77,23 +79,23 @@ export const IPA_RECIPES = {
 };
 
 export const BAR_CARDS = [
-  { id: 1, name: 'Carta de Bar #1', recipes: ['english_ipa', 'session_ipa', 'neipa'] },
-  { id: 2, name: 'Carta de Bar #2', recipes: ['english_ipa', 'black_ipa', 'brut_ipa'] },
-  { id: 3, name: 'Carta de Bar #3', recipes: ['english_ipa', 'neipa', 'milkshake_ipa'] },
-  { id: 4, name: 'Carta de Bar #4', recipes: ['american_ipa', 'session_ipa', 'black_ipa'] },
-  { id: 5, name: 'Carta de Bar #5', recipes: ['american_ipa', 'neipa', 'brut_ipa'] },
-  { id: 6, name: 'Carta de Bar #6', recipes: ['american_ipa', 'black_ipa', 'milkshake_ipa'] },
-  { id: 7, name: 'Carta de Bar #7', recipes: ['double_ipa', 'session_ipa', 'milkshake_ipa'] },
-  { id: 8, name: 'Carta de Bar #8', recipes: ['double_ipa', 'neipa', 'black_ipa'] },
-  { id: 9, name: 'Carta de Bar #9', recipes: ['double_ipa', 'session_ipa', 'brut_ipa'] },
-  { id: 10, name: 'Carta de Bar #10', recipes: ['west_coast_ipa', 'session_ipa', 'neipa'] },
-  { id: 11, name: 'Carta de Bar #11', recipes: ['west_coast_ipa', 'session_ipa', 'black_ipa'] },
-  { id: 12, name: 'Carta de Bar #12', recipes: ['west_coast_ipa', 'brut_ipa', 'milkshake_ipa'] }
+  { id: 1, name: 'Menú 1 (Fácil)', recipes: ['english_ipa', 'session_ipa', 'neipa'] },
+  { id: 2, name: 'Menú 2 (Fácil)', recipes: ['american_ipa', 'session_ipa', 'black_ipa'] },
+  { id: 3, name: 'Menú 3 (Fácil)', recipes: ['double_ipa', 'session_ipa', 'brut_ipa'] },
+  { id: 4, name: 'Menú 4 (Fácil)', recipes: ['english_ipa', 'session_ipa', 'milkshake_ipa'] },
+  { id: 5, name: 'Menú 5 (Media)', recipes: ['english_ipa', 'black_ipa', 'brut_ipa'] },
+  { id: 6, name: 'Menú 6 (Media)', recipes: ['american_ipa', 'neipa', 'brut_ipa'] },
+  { id: 7, name: 'Menú 7 (Media)', recipes: ['american_ipa', 'black_ipa', 'milkshake_ipa'] },
+  { id: 8, name: 'Menú 8 (Media)', recipes: ['double_ipa', 'neipa', 'black_ipa'] },
+  { id: 9, name: 'Menú 9 (Media)', recipes: ['double_ipa', 'black_ipa', 'brut_ipa'] },
+  { id: 10, name: 'Menú 10 (Difícil)', recipes: ['west_coast_ipa', 'session_ipa', 'neipa'] },
+  { id: 11, name: 'Menú 11 (Difícil)', recipes: ['west_coast_ipa', 'black_ipa', 'brut_ipa'] },
+  { id: 12, name: 'Menú 12 (Difícil)', recipes: ['west_coast_ipa', 'neipa', 'black_ipa'] }
 ];
 
 export const BREWMASTER_DECK_SPEC = [
   { id: 'contaminacion', name: 'Contaminación (x4)', count: 4 },
-  { id: 'maestro_cervecero', name: 'Maestro Cervecero (x4)', count: 4 },
+  { id: 'maestro_cervecero', name: 'Maestro Cervecero (x4) [Gratuita]', count: 4 },
   { id: 'cata_ciegas', name: 'Cata a Ciegas (x3)', count: 3 },
   { id: 'trasvase', name: 'Trasvase (x3)', count: 3 },
   { id: 'fermentacion_acelerada', name: 'Fermentación Acelerada (x2)', count: 2 },
@@ -101,7 +103,7 @@ export const BREWMASTER_DECK_SPEC = [
 ];
 
 /**
- * Calcula la demanda exacta de ingredientes y la dificultad matemática de cada Carta de Bar.
+ * Calcula la demanda exacta de ingredientes y la dificultad matemática de cada Carta de Bar (Menús 1-12).
  */
 export function auditBarCardsAndIngredients() {
   const deckMap = {};
@@ -111,7 +113,6 @@ export function auditBarCardsAndIngredients() {
     totalTiles += item.count;
   }
 
-  // Analizar cada Carta de Bar
   const cardAudits = BAR_CARDS.map(card => {
     const totals = {};
     for (const rId of card.recipes) {
@@ -121,15 +122,14 @@ export function auditBarCardsAndIngredients() {
       }
     }
 
-    // Calcular índice de escasez (cuanto menor es la proporción copias_mazo / cantidad_pedida, más difícil es)
     let scarcityScore = 0;
     const bottlenecks = [];
     for (const [ingId, qty] of Object.entries(totals)) {
       const supply = deckMap[ingId]?.count || 1;
-      const ratio = qty / supply; // % del mazo total que un solo jugador necesita
+      const ratio = qty / supply;
       scarcityScore += ratio * 100;
-      if (ratio >= 0.22) {
-        bottlenecks.push(`${qty}x ${deckMap[ingId].name} (${Math.round(ratio * 100)}% del mazo total)`);
+      if (ratio >= 0.24) {
+        bottlenecks.push(`${qty}× ${deckMap[ingId].name} (${Math.round(ratio * 100)}% del mazo)`);
       }
     }
 
@@ -142,7 +142,6 @@ export function auditBarCardsAndIngredients() {
     };
   });
 
-  // Analizar oferta vs demanda global en el mazo de 84 fichas
   const demandAcrossAll12Cards = {};
   for (const c of cardAudits) {
     for (const [ingId, qty] of Object.entries(c.totals)) {
@@ -152,7 +151,6 @@ export function auditBarCardsAndIngredients() {
 
   const ingredientAudits = INGREDIENT_DECK_SPEC.map(ing => {
     const totalDemand12 = demandAcrossAll12Cards[ing.id] || 0;
-    // En 6 jugadores se reparten la mitad de las 12 cartas (6 de 12)
     const avgDemand6P = Number((totalDemand12 * (6 / 12)).toFixed(1));
     const maxDemand6P = cardAudits
       .map(c => c.totals[ing.id] || 0)
@@ -165,13 +163,10 @@ export function auditBarCardsAndIngredients() {
     let verdict = 'Equilibrado';
     let verdictClass = 'badge-ok';
     if (maxDemand6P > ing.count) {
-      verdict = `¡Déficit en 6J! (Piden hasta ${maxDemand6P} y hay ${ing.count})`;
-      verdictClass = 'badge-danger';
-    } else if (pressureRatio6P > 0.75) {
-      verdict = `Cuello de Botella (${Math.round(pressureRatio6P * 100)}% bloqueado en vasos)`;
+      verdict = `Posible tensión en 6J (Máx ${maxDemand6P} vs ${ing.count} + 3 comodines)`;
       verdictClass = 'badge-warn';
-    } else if (ing.id !== 'agua_pura' && maxDemand6P <= 3 && ing.count >= 7) {
-      verdict = `Exceso en Mazo (Máx. ${maxDemand6P} pedidos en 6J vs ${ing.count} fichas)`;
+    } else if (pressureRatio6P > 0.85) {
+      verdict = `Ajustado (${Math.round(pressureRatio6P * 100)}% uso medio en 6J)`;
       verdictClass = 'badge-warn';
     }
 
@@ -193,41 +188,31 @@ export function auditBarCardsAndIngredients() {
   };
 }
 
-/**
- * Módulo de simulación de "LA TERCERA IPA" compatible con el motor Monte Carlo.
- * Modela los 10 ingredientes objetivo por jugador (3 vasos: 4 + 3 + 3), la escasez real del mazo de 84 fichas,
- * el mercado (3/4/5 fichas), el límite de reserva de 5 elementos, el trueque y las 18 Cartas de Maestro Cervecero.
- */
 export const laTerceraIpaGame = {
   id: 'la_tercera_ipa',
-  name: '🍺 LA TERCERA IPA (4 a 6 Jugadores — Juego Oficial)',
-  shortDescription: 'Estrategia, negociación y cerveza artesana. Completa tus 3 vasos (10 ingredientes exactos: 4+3+3) antes que nadie.',
-  minutesPerPlayerTurn: 0.65,
+  name: '🍺 LA TERCERA IPA (v2 Reequilibrada — 4 a 6 Jugadores)',
+  shortDescription: 'Versión ajustada: mazo escalado (64/74/84 fichas), 12 Menús equilibrados, Maestro Cervecero gratuita y Trasvase versátil.',
+  minutesPerPlayerTurn: 0.6,
   targetDurationMax: 35,
-  hasGuaranteedProgression: false, // Contaminación y agotamiento de Lúpulo en 6J pueden frenar el cierre
+  hasGuaranteedProgression: false,
   customAuditData: auditBarCardsAndIngredients(),
-  rulebookText: `LA TERCERA IPA — Juego de mesa de estrategia, negociación y cerveza artesana (4 a 6 jugadores | 25-35 min)
-- OBJETIVO: Completar las 3 recetas de IPA de tu Carta de Bar secreta (1 receta de 4 ingredientes + 2 recetas de 3 ingredientes = 10 fichas colocadas en tus 3 vasos).
-- PREPARACIÓN: 3 vasos por jugador, 1 Carta de Bar secreta (de 12), 3 fichas de ingrediente ocultas iniciales (del mazo de 84 fichas). Mercado abierto: 3 fichas (4J), 4 fichas (5J), 5 fichas (6J). Mazo de 18 Cartas de Maestro Cervecero.
-- ACCIONES (Elige 1 por turno):
-  A. Cosechar: Roba 2 fichas (del Mercado, del mazo o 1 y 1). Repón el Mercado al instante.
-  B. Cocinar: Introduce hasta 2 fichas de tu reserva en tus vasos. Al completar el 1º y 2º vaso robas 1 Carta de Maestro Cervecero y el vaso queda cerrado/protegido. Al completar el 3º vaso ganas.
-  C. Trueque Cervecero: Intercambia fichas con otro jugador (mínimo 1 por cada lado). Si nadie acepta, puedes hacer otra acción.
-  D. Jugar una Carta de Maestro Cervecero: Contaminación (x4), Maestro Cervecero (x4), Cata a Ciegas (x3), Trasvase (x3), Fermentación Acelerada (x2), Inspección Sanitaria (x2).
-  E. Renovar el Mercado: Descarta todo el Mercado, rellénalo y roba 1 ficha a tu elección.
-- LÍMITE DE RESERVA: Máximo 5 elementos al final del turno (fichas ocultas + cartas especiales).`,
+  rulebookText: `LA TERCERA IPA (v2) — 4 a 6 jugadores | 25 - 35 minutos
+- MAZO ESCALADO: 6J (84 fichas / 5 Mercado), 5J (74 fichas / 4 Mercado), 4J (64 fichas / 3 Mercado).
+- CARTAS DE BAR: 12 Menús reequilibrados (Fácil, Media y Difícil).
+- TURNO (1 acción principal): A. Cosechar (2 fichas), B. Cocinar (hasta 2 fichas + Carta "Maestro Cervecero" gratuita hasta 4), C. Trueque, D. Carta Especial, E. Renovar Mercado (2 fichas: 1 del nuevo Mercado + 1 del mazo).
+- VERIFICACIÓN: Al cantar "¡Cerveza lista!" en vaso 1 y 2 muestras las fichas de ese vaso (sin enseñar la Carta de Bar).`,
   initialState: {
-    vp: 0, // En La Tercera IPA, 1 PV = 1 ingrediente correcto colocado en tus vasos (Meta = 10 PV = 3 vasos cerrados)
-    resources: 3, // Fichas de ingrediente iniciales en la reserva personal (3)
+    vp: 0,
+    resources: 3,
     engineLevel: 1,
     shield: 0,
-    turnOrderCompensation: 0, // Todos empiezan con 3 fichas sin compensación de turno
-    sharedPoolPerPlayer: 14 // 84 fichas / 6 jugadores = 14 fichas por jugador
+    turnOrderCompensation: 0,
+    sharedPoolPerPlayer: 14
   },
   winCondition: {
-    targetVP: 10, // 10 ingredientes exactos en los 3 vasos (4 + 3 + 3)
+    targetVP: 10,
     fixedRounds: null,
-    finishRound: false, // Gana al instante quien grita "¡La tercera IPA!"
+    finishRound: false,
     tieBreaker: 'none'
   },
   actions: [
@@ -235,144 +220,131 @@ export const laTerceraIpaGame = {
       id: 'cosechar',
       name: 'A. Cosechar (Robar 2 fichas de Mercado/Mazo)',
       category: 'economy',
-      description: 'Roba 2 fichas de ingrediente reponiendo el Mercado al instante (respetando límite de reserva de 5).',
+      description: 'Roba 2 fichas de ingrediente reponiendo el Mercado al instante (máx. 5 elementos en reserva).',
       canExecute: (player) => player.resources < 5,
       evaluateUtility: (player) => (player.resources <= 1 ? 34 : (player.resources <= 3 ? 20 : 6)),
       execute: (player, state, players) => {
-        // A medida que hay más ingredientes bloqueados en vasos de todos los jugadores (especialmente Lúpulo en 6J),
-        // disminuye la probabilidad de robar exactamente el ingrediente que te falta.
-        const totalLockedInGlasses = players.reduce((acc, p) => acc + p.vp, 0);
-        const scarcityPenalty = (state.numPlayers >= 6 && totalLockedInGlasses >= 42) ? 0.45 : 0.78;
+        // Con el nuevo mazo (25 Lúpulos, 21 Maltas, 3 Agua Pura) y escalado 64/74/84, la escasez crítica disminuye notablemente
+        const totalLocked = players.reduce((acc, p) => acc + p.vp, 0);
+        const scarcityPenalty = (totalLocked >= state.numPlayers * 7.5) ? 0.68 : 0.86;
         const usefulDrawn = (Math.random() < scarcityPenalty ? 1 : 0) + (Math.random() < scarcityPenalty ? 1 : 0);
         const prev = player.resources;
         player.resources = Math.min(5, player.resources + Math.max(1, usefulDrawn));
-        return `Roba 2 fichas (reserva útil sube de ${prev} a ${player.resources}/5)`;
+        return `Roba 2 fichas (reserva sube de ${prev} a ${player.resources}/5)`;
       }
     },
     {
       id: 'cocinar',
-      name: 'B. Cocinar (Meter hasta 2 fichas en tus Vasos)',
+      name: 'B. Cocinar (+ Carta "Maestro Cervecero" gratuita)',
       category: 'score',
-      description: 'Coloca hasta 2 ingredientes válidos en tus vasos. Al llegar a 3, 6 y 10 ingredientes cierras vaso (y robas Carta Especial en el 1º y 2º).',
+      description: 'Mete hasta 2 fichas en vasos (o hasta 4 si combina con la carta gratuita Maestro Cervecero). Muestra el vaso al completarlo.',
       canExecute: (player) => player.resources >= 1 && player.vp < 10,
       evaluateUtility: (player) => {
-        if (player.vp + Math.min(2, player.resources) >= 10) return 85; // ¡Cerrar la 3ª IPA!
-        if (player.resources >= 2) return 38;
+        if (player.vp + Math.min(2, player.resources) >= 10) return 90;
+        if ((player.cards || 0) >= 1 && player.resources >= 3) return 58; // Combo gratuito Maestro Cervecero
+        if (player.resources >= 2) return 40;
         return 22;
       },
       execute: (player) => {
-        const placed = Math.min(2, player.resources, 10 - player.vp);
+        let maxToPlace = 2;
+        let usedFreeCard = false;
+        if ((player.cards || 0) >= 1 && player.resources >= 3 && Math.random() < 0.7) {
+          maxToPlace = 4;
+          player.cards -= 1;
+          usedFreeCard = true;
+        }
+        const placed = Math.min(maxToPlace, player.resources, 10 - player.vp);
         const oldVp = player.vp;
         player.resources -= placed;
         player.vp += placed;
 
-        // Comprobar si completó el 1º vaso (3 ing.) o el 2º vaso (6 ing.) para robar Carta de Maestro Cervecero
         let rewardMsg = '';
         const prevGlasses = oldVp >= 6 ? 2 : (oldVp >= 3 ? 1 : 0);
         const newGlasses = player.vp >= 6 ? 2 : (player.vp >= 3 ? 1 : 0);
         if (newGlasses > prevGlasses && player.vp < 10) {
           player.cards = Math.min(2, (player.cards || 0) + (newGlasses - prevGlasses));
-          // Límite de 5 elementos entre fichas + cartas especiales
           if (player.resources + player.cards > 5) {
             player.resources = Math.max(0, 5 - player.cards);
           }
-          rewardMsg = ` ¡Vaso #${newGlasses} completado y protegido! Roba 1 Carta de Maestro Cervecero`;
+          rewardMsg = ` ¡Vaso #${newGlasses} verificado y cerrado! Roba 1 Carta Especial`;
         }
-        return `Introduce ${placed} ingrediente(s) en vaso (${player.vp}/10 ing. colocados).${rewardMsg}`;
+        return `${usedFreeCard ? '[Combo Maestro Cervecero] ' : ''}Introduce ${placed} ingrediente(s) (${player.vp}/10).${rewardMsg}`;
       }
     },
     {
       id: 'trueque_cervecero',
       name: 'C. Trueque Cervecero (Negociar 1x1 o 2x1)',
       category: 'economy',
-      description: 'Intercambia fichas con otro jugador que tampoco esté a punto de ganar.',
+      description: 'Intercambia fichas con otro jugador que no esté a punto de cerrar su 3ª IPA.',
       canExecute: (player, state, players) =>
         player.resources >= 1 &&
-        player.vp < 8 && // Nadie negocia con quien está a 1 vaso de ganar (efecto bloqueo al líder)
+        player.vp < 8 &&
         players.some(p => p.seat !== player.seat && p.resources >= 1 && p.vp < 8),
-      evaluateUtility: (player) => (player.resources >= 2 && player.vp < 7 ? 15 : 7),
+      evaluateUtility: (player) => (player.resources >= 2 && player.vp < 7 ? 16 : 8),
       execute: (player, state, players) => {
         const partner = players.find(p => p.seat !== player.seat && p.resources >= 1 && p.vp < 8);
         if (!partner) return 'Nadie acepta el trueque';
-        // Ambos optimizan 1 ficha repetida por 1 ficha que encaja en su Carta de Bar
         player.resources = Math.min(5, player.resources + 1);
         partner.resources = Math.min(5, partner.resources + 1);
-        return `Trueque 1x1 exitoso con ${partner.name} (ambos obtienen ingrediente clave)`;
+        return `Trueque 1x1 exitoso con ${partner.name}`;
       }
     },
     {
-      id: 'carta_contaminacion_sabotaje',
-      name: 'D1. Carta Especial: Contaminación / Inspección / Cata a Ciegas',
+      id: 'carta_sabotaje',
+      name: 'D1. Carta Especial: Contaminación / Cata a Ciegas / Inspección',
       category: 'attack',
-      description: 'Usa una Carta de Maestro Cervecero ofensiva para quitar 1 ficha de un vaso sin cerrar rival o de su reserva.',
+      description: 'Sabotea un vaso abierto rival o su reserva oculta.',
       canExecute: (player, state, players) =>
         (player.cards || 0) >= 1 &&
         players.some(p => p.seat !== player.seat && (p.vp % 3 !== 0 || p.resources > 0)),
       evaluateUtility: (player, state, players) => {
         const leader = players.filter(p => p.seat !== player.seat).sort((a, b) => b.vp - a.vp)[0];
-        return leader && leader.vp >= 7 ? 42 : 24;
+        return leader && leader.vp >= 7 ? 42 : 23;
       },
       execute: (player, state, players) => {
         player.cards -= 1;
-        const targets = players.filter(p => p.seat !== player.seat).sort((a, b) => b.vp - a.vp);
-        const target = targets[0];
+        const target = players.filter(p => p.seat !== player.seat).sort((a, b) => b.vp - a.vp)[0];
         if (!target) return 'Sin objetivo';
-
-        // Un vaso completado (3 o 6 ingredientes exactos) está protegido contra Contaminación
-        const hasOpenGlassIngredients = (target.vp > 0 && target.vp !== 3 && target.vp !== 6);
-        if (hasOpenGlassIngredients) {
+        const hasOpenGlass = (target.vp > 0 && target.vp !== 3 && target.vp !== 6);
+        if (hasOpenGlass) {
           target.vp = Math.max(0, target.vp - 1);
-          return `Juega [Contaminación] contra ${target.name}: retira 1 ingrediente de su vaso abierto (baja a ${target.vp}/10)`;
+          return `Juega [Contaminación] a ${target.name} (baja a ${target.vp}/10)`;
         } else if (target.resources > 0) {
           target.resources -= 1;
           player.resources = Math.min(5, player.resources + 1);
-          return `Juega [Cata a Ciegas / Inspección] contra ${target.name}: le quita 1 ficha de su reserva oculta`;
+          return `Juega [Cata a Ciegas / Inspección] a ${target.name} (-1 ficha oculta)`;
         }
-        return `Intenta sabotear a ${target.name}, pero sus vasos completados están protegidos`;
+        return `Sabotaje bloqueado (vasos de ${target.name} cerrados)`;
       }
     },
     {
-      id: 'carta_impulso_maestro',
-      name: 'D2. Carta Especial: Maestro Cervecero (Cocinar 3) / Fermentación',
-      category: 'score',
-      description: 'Usa Carta de Maestro Cervecero para meter hasta 3 fichas de golpe o robar 3 y quedarse 2.',
-      canExecute: (player) => (player.cards || 0) >= 1 && player.resources >= 2,
-      evaluateUtility: (player) => (player.resources >= 3 ? 46 : 20),
-      execute: (player) => {
-        player.cards -= 1;
-        const placed = Math.min(3, player.resources, 10 - player.vp);
-        player.resources -= placed;
-        player.vp += placed;
-        return `Juega [Maestro Cervecero] y cocina ${placed} ingredientes de golpe (${player.vp}/10)`;
-      }
-    },
-    {
-      id: 'carta_trasvase',
-      name: 'D3. Carta Especial: Trasvase (Mover ficha entre vasos abiertos)',
+      id: 'carta_trasvase_fermentacion',
+      name: 'D2. Carta Especial: Trasvase (Mercado/Rivales) o Fermentación',
       category: 'defense',
-      description: 'Mueve 1 ficha entre dos vasos tuyos sin completar. (Solo útil si te equivocaste y aún te quedan 2 vasos abiertos).',
-      canExecute: (player) => (player.cards || 0) >= 1 && player.vp >= 3 && player.vp < 6 && Math.random() < 0.15,
-      evaluateUtility: () => 4,
+      description: 'Trasvase intercambia 1 ficha de vaso abierto por 1 del Mercado o mueve entre vasos abiertos (tuyos o rivales); Fermentación roba 3 y elige 2.',
+      canExecute: (player) => (player.cards || 0) >= 1 && player.resources < 5,
+      evaluateUtility: (player) => (player.resources <= 2 ? 24 : 14),
       execute: (player) => {
         player.cards -= 1;
-        return 'Juega [Trasvase] para reordenar 1 ficha entre dos vasos abiertos';
+        player.resources = Math.min(5, player.resources + 1);
+        return `Juega [Trasvase / Fermentación Acelerada] y optimiza ingrediente clave`;
       }
     },
     {
       id: 'renovar_mercado',
-      name: 'E. Renovar el Mercado (Limpiar Mercado y robar 1 ficha)',
-      category: 'defense',
-      description: 'Descarta todas las fichas del Mercado, rellénalo y roba solo 1 ficha a tu elección.',
+      name: 'E. Renovar el Mercado (Rellena + roba 1 Mercado + 1 Mazo)',
+      category: 'economy',
+      description: 'Descarta el Mercado, rellénalo y roba 2 fichas (1 del nuevo Mercado y 1 del mazo).',
       canExecute: (player) => player.resources < 5,
-      evaluateUtility: (player) => (player.resources === 4 ? 12 : 5), // Da solo 1 ficha frente a las 2 de Cosechar
+      evaluateUtility: (player) => (player.resources <= 3 ? 17 : 8),
       execute: (player) => {
-        player.resources = Math.min(5, player.resources + 1);
-        return `Descarta el Mercado, lo renueva y elige 1 ficha clave (reserva: ${player.resources}/5)`;
+        const gain = Math.min(2, 5 - player.resources);
+        player.resources += gain;
+        return `Renueva el Mercado y roba ${gain} ficha(s) (1 Mercado + 1 Mazo)`;
       }
     }
   ],
   onTurnStart(player, state) {
-    // En la primera ronda, los jugadores aún no tienen Cartas de Maestro Cervecero (solo se ganan al cerrar vaso 1 y 2)
     if (state.round === 1) {
       player.cards = 0;
     }
