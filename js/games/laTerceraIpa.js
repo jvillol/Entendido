@@ -154,18 +154,18 @@ export function auditBarCardsAndIngredients() {
 
 export const laTerceraIpaGame = {
   id: 'la_tercera_ipa',
-  name: '🍺 LA TERCERA IPA (Pintas de 3-4 Ingredientes — 84 Fichas)',
-  shortDescription: '3 pintas perfectas (9-10 ingredientes/jugador). Stock de 84 fichas equilibrado; pendiente reciclar las 12 Cartas de Bar en 6J.',
+  name: '🍺 LA TERCERA IPA (v3.0 Definitiva — 3-4 Ing. / Vasos con Espuma)',
+  shortDescription: 'Reglamento Definitivo v3.0: pintas de 3-4 ingredientes, reciclado de Cartas de Bar en 6J, Comerciar 2×2/Trueque y Renovar con robo.',
   minutesPerPlayerTurn: 0.7,
   targetDurationMax: 45,
   hasGuaranteedProgression: true,
   customAuditData: auditBarCardsAndIngredients(),
-  rulebookText: `LA TERCERA IPA — Pintas de 3-4 ingredientes (4 a 6 jugadores | 35-45 min)
-- OBJETIVO: Cerrar 3 pintas perfectas (IPA Clásica = 4 ing., Especiales = 3 ing.; ~10 ingredientes por jugador).
-- CARTAS DE BAR: 12 cartas en total, 2 boca arriba por jugador (en 6J el mazo empieza en 0).
-- ACCIONES (1 por turno): 1. Cosechar (2 fichas), 2. Cocinar (1-2 fichas + Agua Pura limpiador), 3. Comerciar (1 por 1 en Mercado), 4. Jugar Carta de Maestro Cervecero, 5. Renovar Mercado.`,
+  rulebookText: `LA TERCERA IPA (v3.0 Definitiva) — 4 a 6 jugadores | 35-45 min
+- OBJETIVO: Cerrar 3 pintas perfectas con espuma (IPA Clásica = 4 ing., Especiales = 3 ing.).
+- CARTAS DE BAR: 12 cartas, 2 boca arriba personales por jugador. Si el mazo de Bar se agota, se barajan los descartes.
+- ACCIONES (1 por turno): 1. Cosechar (2 fichas), 2. Cocinar (1-2 fichas + Agua Pura), 3. Comerciar (Trueque 1-2 fichas o Cambio rápido 2×2 en Mercado), 4. Jugar Carta de Maestro Cervecero, 5. Renovar Mercado (5 nuevas + roba 1).`,
   initialState: {
-    vp: 0, // Meta: 10 ingredientes colocados (equivalente a 3 pintas de ~3.3 ingredientes de media)
+    vp: 0,
     resources: 3,
     engineLevel: 1,
     shield: 0,
@@ -217,12 +217,12 @@ export const laTerceraIpaGame = {
     },
     {
       id: 'comerciar',
-      name: '3. Comerciar (Entregar 1 ficha por 1 del Mercado)',
-      category: 'defense',
-      description: 'Entrega 1 ficha a la Despensa y toma 1 del Mercado (saldo neto 0 frente a las +2 fichas de Cosechar).',
-      canExecute: (player) => player.resources >= 4,
-      evaluateUtility: () => 2,
-      execute: () => 'Cambia 1 ficha propia por 1 del Mercado (saldo neto: 0 fichas)'
+      name: '3. Comerciar (Trueque 1-2 fichas o Cambio 2×2 en Mercado)',
+      category: 'economy',
+      description: 'Trueque libre con un rival (1-2 fichas) o cambio rápido de hasta 2 fichas propias por 2 del Mercado.',
+      canExecute: (player) => player.resources >= 2,
+      evaluateUtility: (player) => (player.resources >= 3 ? 16 : 9),
+      execute: () => 'Realiza Trueque / Cambio rápido 2×2 en Mercado (optimiza 2 ingredientes)'
     },
     {
       id: 'jugar_carta_mc',
@@ -249,12 +249,15 @@ export const laTerceraIpaGame = {
     },
     {
       id: 'renovar_mercado',
-      name: '5. Renovar el Mercado (Sin robar fichas)',
-      category: 'defense',
-      description: 'Descarta las 5 del Mercado y saca 5 nuevas sin robar ninguna ficha.',
-      canExecute: () => true,
-      evaluateUtility: () => 1.5,
-      execute: () => 'Renueva las 5 fichas del Mercado (no gana ninguna ficha este turno)'
+      name: '5. Renovar el Mercado (5 nuevas + roba 1)',
+      category: 'economy',
+      description: 'Descarta las 5 del Mercado, saca 5 nuevas y roba 1 de ellas.',
+      canExecute: (player) => player.resources < 5,
+      evaluateUtility: (player) => (player.resources === 4 ? 14 : 9),
+      execute: (player) => {
+        player.resources = Math.min(5, player.resources + 1);
+        return `Renueva las 5 fichas del Mercado y roba 1 ficha clave (${player.resources}/5)`;
+      }
     }
   ],
   onTurnStart(player, state) {

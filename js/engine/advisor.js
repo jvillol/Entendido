@@ -11,38 +11,10 @@ export function generateDesignAdvice(analysis, gameModule) {
     recommendations.push(
       {
         severity: 'ok',
-        badge: 'Stock de 84 Fichas Resuelto',
-        title: 'Con pintas de 3-4 ingredientes (~10 fichas/jugador), las 84 fichas alcanzan perfectamente para 4-6 jugadores',
-        description: 'Las 12 Cartas de Bar suman ahora 16 Lúpulos (hay 25), 9 Maltas (hay 21) y 7 Levaduras (hay 12). Incluso en partidas de 6 jugadores reñidas (~60 fichas cerradas en vasos), siempre quedan fichas suficientes en circulación.',
-        fix: 'El tamaño de las recetas (4 para IPA Clásica y 3 para las especiales) está muy bien calibrado para partidas de 35-45 minutos.'
-      },
-      {
-        severity: 'high',
-        badge: 'Bloqueo de Mazo en 6 Jugadores',
-        title: 'Con 12 Cartas de Bar y 2 por jugador, en 6 jugadores el mazo empieza en 0 y faltan cartas para la 3.ª pinta',
-        description: 'Al repartir 2 Cartas de Bar a 6 jugadores (6 × 2 = 12), el mazo queda vacío desde el inicio. Cuando un jugador completa su 1.ª pinta y descarta su carta ("robando una nueva del mazo de Bar si quedan"), no roba nada; al cerrar su 2.ª pinta se queda con 0 Cartas de Bar y no tiene objetivo propio para cerrar la 3.ª pinta.',
-        fix: 'Añade en la Sección 4: "Si el mazo de Cartas de Bar se agota, baraja las Cartas de Bar descartadas para formar un nuevo mazo de robo" (o amplía el mazo a 18-24 Cartas de Bar).'
-      },
-      {
-        severity: 'medium',
-        badge: 'Acción 3 (Comerciar) Inútil frente a Acción 1 (Cosechar)',
-        title: 'Comerciar (1 por 1 del Mercado) es inferior a Cosechar (2 gratis del Mercado)',
-        description: 'Si tienes menos de 4 fichas en tu reserva, Cosechar te da 2 fichas del Mercado sin entregar nada; Comerciar gasta tu turno entero para cambiar 1 ficha y quedarte con las mismas.',
-        fix: 'Haz que Comerciar permita negociar 1×1 / 2×1 con otros jugadores, o cambiar hasta 2 fichas tuyas por 2 del Mercado.'
-      },
-      {
-        severity: 'medium',
-        badge: 'Acción 5 (Renovar el Mercado) Muy Punitiva',
-        title: 'Renovar el Mercado consume tu turno entero sin darte ninguna ficha',
-        description: 'Gastar tu única acción en cambiar las 5 fichas del Mercado beneficia al jugador sentado a tu izquierda mientras tú pierdes el turno.',
-        fix: 'Tras renovar las 5 fichas del Mercado, permite robar 1 ficha del nuevo Mercado.'
-      },
-      {
-        severity: 'idea',
-        badge: 'Aclaración de Pedidos Públicos',
-        title: '¿Qué ocurre al completar el pedido boca arriba de otro jugador?',
-        description: 'La sección 2.2 menciona "cubrir los pedidos públicos de la mesa", pero la sección 4 solo habla de "cualquiera de tus Cartas de Bar". Conviene aclarar si son solo tus 2 cartas o si hay un mercado común de pedidos.',
-        fix: 'Especifica que solo puedes completar tus 2 Cartas de Bar (o pon 4 Cartas de Bar comunes en el centro de la mesa).'
+        badge: 'Reglamento v3.0 Completo y Equilibrado',
+        title: 'Stock de 84 fichas, reciclado de Cartas de Bar y 5 acciones viables totalmente cerrados',
+        description: 'Con recetas de 3-4 ingredientes, reciclado automático del descarte de Cartas de Bar en 6 jugadores, Comerciar mejorado (Trueque o cambio 2×2 en Mercado) y Renovar el Mercado con robo de 1 ficha, desaparecen todas las reglas muertas y bloqueos matemáticos.',
+        fix: 'El diseño v3.0 está listo para imprimir, montar los vasos con algodón y hacer pruebas en mesa de 4 a 6 jugadores.'
       }
     );
   }
