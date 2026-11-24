@@ -11,10 +11,45 @@ export function generateDesignAdvice(analysis, gameModule) {
     recommendations.push(
       {
         severity: 'ok',
-        badge: 'Reglamento v3.0 Completo y Equilibrado',
-        title: 'Stock de 84 fichas, reciclado de Cartas de Bar y 5 acciones viables totalmente cerrados',
-        description: 'Con recetas de 3-4 ingredientes, reciclado automático del descarte de Cartas de Bar en 6 jugadores, Comerciar mejorado (Trueque o cambio 2×2 en Mercado) y Renovar el Mercado con robo de 1 ficha, desaparecen todas las reglas muertas y bloqueos matemáticos.',
-        fix: 'El diseño v3.0 está listo para imprimir, montar los vasos con algodón y hacer pruebas en mesa de 4 a 6 jugadores.'
+        badge: 'Gran Acierto de Diseño',
+        title: 'El Draft inicial de 18 Cartas de Bar (repartir 2 ocultas y elegir 1) funciona de maravilla de 2 a 6 jugadores',
+        description: 'Con 18 Cartas de Bar únicas, incluso en partidas de 6 jugadores se pueden repartir 2 cartas a cada uno (12 cartas) para que elijan 1 en secreto. Esto reduce la mala suerte inicial y mantiene la intriga de principio a fin.',
+        fix: 'Mantén exactamente este sistema de selección inicial (Draft 2 elige 1) y el mazo de 24 Cartas de Acción Cervecera.'
+      },
+      {
+        severity: 'high',
+        badge: 'Fricción en Mesa (5 y 6 Jugadores)',
+        title: 'Cocinar solo 1 ficha por turno + "Cerrar IPA" gastando otro turno expone el vaso lleno a 5 turnos de sabotaje',
+        description: 'En las simulaciones de 5 y 6 jugadores ocurre un fenómeno crítico: cuando colocas el último ingrediente de un vaso con la acción "Cocinar", ya gastaste tu turno. Tu vaso queda lleno PERO SIN ESPUMA durante los turnos de los otros 4 o 5 jugadores hasta que te vuelva a tocar para hacer la acción "Cerrar IPA". En 5-6J, casi siempre alguien te tira "Contaminación" o "Trasvase" en esa ventana, provocando frustración y alargando la partida a más de 20 rondas.',
+        fix: 'Tienes 2 opciones muy limpias: A) Si al "Cocinar" colocas el último ingrediente de la receta, puedes ponerle la espuma inmediatamente en ese mismo turno (o que "Cerrar IPA" cueste descartar 1 ficha de tu reserva como acción gratuita), O B) Que "Cocinar" permita meter hasta 2 fichas si son en vasos distintos y "Cerrar IPA" sea acción de turno.'
+      },
+      {
+        severity: 'medium',
+        badge: 'Regla Dominada (Sin Uso Real)',
+        title: 'El "Cambio rápido en el Mercado" (devolver 2 fichas tuyas para coger 1 del Mercado) siempre es peor que "Cosechar"',
+        description: 'Con la Acción 1 (Cosechar) coges 2 fichas gratis del Mercado; si tenías 5 fichas en tu reserva, pasas a 7 y al final del turno descartas 2 fichas que no quieras (es decir, cambias 2 tuyas por 2 del Mercado). En cambio, con "Cambio rápido en el Mercado" (Acción 3B) entregas 2 fichas tuyas para recibir solo 1 del Mercado.',
+        fix: 'Cambia el "Cambio rápido en el Mercado" a: "Devuelve 1 o 2 fichas de tu reserva a la Despensa y toma la misma cantidad (1 o 2 fichas) del Mercado de Abastos", o permite hacer el cambio 2×1 como acción gratuita una vez por turno antes de Cocinar.'
+      },
+      {
+        severity: 'medium',
+        badge: 'Asimetría en Cartas de Bar 01-09 vs 10-18',
+        title: 'Las Cartas 01 a 09 piden 10 ingredientes (1 turno más de Cocinar) que las Cartas 10 a 18 (9 ingredientes)',
+        description: 'Como la acción "Cocinar" mete exactamente 1 ficha por turno, las Cartas 01–09 (que incluyen la IPA Clásica de 4 ingredientes) exigen 10 turnos de Cocinar frente a los 9 turnos de las Cartas 10–18. Por otro lado, las Cartas 14, 15, 16, 17 y 18 repiten 2 veces el mismo ingrediente especial escaso (2 Frutas Tropicales o 2 Lactosas).',
+        fix: 'Se compensa parcialmente porque la IPA Clásica usa ingredientes básicos abundantes, pero si quieres simetría total al elegir entre una carta de 10 ing. y una de 9 ing., permite que al cocinar en una "IPA Clásica" puedas echar los 2 Lúpulos en la misma acción de Cocinar.'
+      },
+      {
+        severity: 'idea',
+        badge: 'Utilidad del Agua Pura (3 fichas)',
+        title: 'El Agua Pura solo tiene uso si un rival te mueve una ficha errónea con la carta "Trasvase"',
+        description: 'Como cada jugador mete sus propias fichas en sus vasos y la única carta rival que introduce una ficha ajena en tu vaso es "Trasvase (x4)", si nadie te juega Trasvase, robar Agua Pura de la Despensa a ciegas es robar una ficha sin uso.',
+        fix: 'Dale al Agua Pura un segundo uso opcional: "Puedes usarla para limpiar 1 ingrediente erróneo de un vaso, O descartarla desde tu reserva para anular una Contaminación contra uno de tus vasos (o sustituir a 1 Malta/Levadura básica)".'
+      },
+      {
+        severity: 'idea',
+        badge: 'Resolución de Error al Final de Partida',
+        title: 'Si al revisar los 3 vasos al final hay un ingrediente incorrecto y se retira la espuma, ¿cómo saca la ficha mala?',
+        description: 'La sección 4 dice: "Si algún vaso tiene un ingrediente incorrecto, se retira la espuma de ese vaso y la partida continúa". Pero si ese vaso ya tiene 3 o 4 fichas dentro, el jugador no podría sacar la ficha errónea salvo que robe Agua Pura o Contaminación.',
+        fix: 'Añade: "Se retira la espuma de ese vaso y se descartan a la Despensa las fichas incorrectas de su interior, continuando la partida".'
       }
     );
   }
@@ -116,17 +151,6 @@ export function generateDesignAdvice(analysis, gameModule) {
       title: `Revisión de manual: ${check.title}`,
       description: check.detail,
       fix: `Añade un párrafo explícito en las instrucciones cubriendo este punto para evitar discusiones en la mesa durante las pruebas.`
-    });
-  }
-
-  // 8. Si el juego está muy bien equilibrado, dar ideas de rejugabilidad
-  if (recommendations.length <= 1) {
-    recommendations.push({
-      severity: 'ok',
-      badge: 'Diseño Sólido',
-      title: '¡Motor matemático muy equilibrado y con buen ritmo!',
-      description: 'Las tasas de victoria por asiento, variedad de estrategias y curva de tensión están dentro de los parámetros ideales de un juego de mesa moderno.',
-      fix: 'Siguiente paso sugerido: Puedes introducir objetivos secretos de final de partida o poderes asimétricos de inicio para multiplicar la rejugabilidad.'
     });
   }
 
