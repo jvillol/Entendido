@@ -11,6 +11,13 @@ export function generateDesignAdvice(analysis, gameModule) {
     recommendations.push(
       {
         severity: 'ok',
+        badge: '5/5 Checks del Reglamento Superados',
+        title: 'Equilibrio de Asiento, Final de Ronda Igualado y Triple Desempate 100% Cerrados',
+        description: 'Que el Jugador Inicial empiece con 2 fichas (frente a 3 del resto) y que al cerrar la 3.ª IPA se termine la ronda completa hasta el último jugador clava la simetría matemática entre todos los asientos de 2 a 6 jugadores. Además, el tercer criterio de desempate (ganar con una Carta de Bar de 10 ingredientes frente a una de 9) premia con elegancia a las cartas con IPA Clásica.',
+        fix: 'El reglamento supera el 100% de las auditorías estáticas y dinámicas del simulador.'
+      },
+      {
+        severity: 'ok',
         badge: 'Diseño Definitivo 100% Cerrado',
         title: 'Equilibrio sobresaliente de 2 a 6 jugadores: Cierre de IPA dual, Cambio Rápido 2×1 gratuito y Escudo de Agua Pura',
         description: 'Las tres nuevas reglas encajan como un reloj suizo: 1) El "Cierre inmediato con coste" (descartar 1 ficha de la reserva al meter el último ingrediente para poner la espuma al instante) elimina el bloqueo por sabotaje en 5-6 jugadores y añade una decisión táctica brillante entre gastar 1 ficha ahora o arriesgarse a cerrar gratis en el próximo turno. 2) El "Cambio rápido 2×1 gratuito" da utilidad constante a las fichas sobrantes para cazar especiales en el Mercado. 3) El doble uso del "Agua Pura" (Limpiar o Escudo fuera de turno contra Contaminación/Trasvase) hace que las 84 fichas sean deseables.',

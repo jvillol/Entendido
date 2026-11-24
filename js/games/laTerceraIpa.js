@@ -290,11 +290,19 @@ export const laTerceraIpaGame = {
       },
       {
         title: 'Despensa Principal y Mercado de Abastos',
-        text: 'Mezcla las 84 fichas boca abajo (Despensa), revela 5 fichas boca arriba en el centro (Mercado) y reparte 3 fichas a cada jugador en su reserva oculta (límite de 5 al final del turno).'
+        text: 'Mezcla las 84 fichas boca abajo (Despensa), revela 5 fichas boca arriba en el centro (Mercado) y reparte 3 fichas a cada jugador en su reserva oculta (2 fichas al Jugador Inicial). Máximo 5 al final del turno.'
+      },
+      {
+        title: 'Jugador Inicial y Compensación de Turno',
+        text: 'Empieza quien haya bebido una IPA más recientemente (desempate sacando 1 ficha de la Despensa: gana la más escasa, Agua Pura > Pino > Café > Fruta/Lactosa > Levadura > Malta > Lúpulo). El Jugador Inicial empieza con 2 fichas en su reserva en lugar de 3.'
       },
       {
         title: 'Acción Gratuita de Turno (Cambio Rápido 2×1 en Mercado)',
         text: '1 vez por turno (antes o después de tu acción principal), puedes devolver 2 fichas de tu reserva oculta a la Despensa para tomar 1 ficha a tu elección del Mercado y reponer el hueco.'
+      },
+      {
+        title: 'Última Ronda Igualada y Triple Desempate',
+        text: 'Cuando alguien cierra su 3.ª IPA, se termina la ronda hasta el último jugador. En caso de empate: 1.º Más fichas en reserva oculta, 2.º Más cartas de Acción en mano, 3.º Carta de Bar de 10 ingredientes frente a 9.'
       }
     ],
     customCards: [
@@ -328,6 +336,7 @@ export const laTerceraIpaGame = {
   rulebookText: `LA TERCERA IPA — Reglamento Oficial Definitivo (2 a 6 jugadores | 35-45 min)
 - OBJETIVO: Completar y cerrar con espuma las 3 IPAs de tu Carta de Bar secreta (elegida entre 2 al inicio de un mazo de 18 Cartas de Bar).
 - INVENTARIO: 18 vasos, algodón (espuma), 84 fichas (25 Lúpulo, 21 Malta, 12 Levadura, 7 Fruta Tropical, 7 Lactosa, 5 Café/Cacao, 4 Pino/Resina, 3 Agua Pura), 18 Cartas de Bar y 24 Cartas de Acción Cervecera.
+- JUGADOR INICIAL Y COMPENSACIÓN: Empieza quien haya bebido una IPA más recientemente (o quien saque la ficha más escasa de la Despensa). El Jugador Inicial empieza con 2 fichas ocultas y el resto con 3 fichas.
 - CAMBIO RÁPIDO GRATUITO (1 vez por turno): Antes o después de tu acción principal, devuelve 2 fichas de tu reserva a la Despensa para tomar 1 del Mercado y reponer.
 - ACCIONES DEL TURNO (Elige 1 acción principal):
   1. Cosechar: Coge 2 fichas (Mercado / Despensa). Máximo 5 en reserva oculta.
@@ -335,21 +344,22 @@ export const laTerceraIpaGame = {
   3. Comerciar: Negocia e intercambia libremente 1 o 2 fichas de tu reserva oculta con otro jugador.
   4. Jugar una Carta de Acción Cervecera (y roba 1 si tienes <2 en mano).
   5. Renovar el Mercado: Descarta las 5 del Mercado, saca 5 nuevas y roba 1 de ellas.
-  6. Cerrar IPA: Cierre inmediato con coste (al completar la IPA en tu turno, descarta 1 ficha cualquiera de tu reserva para poner la espuma al instante) O Cierre sin coste (gasta la acción principal "Cerrar IPA" en un turno posterior para poner la espuma gratis).`,
+  6. Cerrar IPA: Cierre inmediato con coste (al completar la IPA en tu turno, descarta 1 ficha cualquiera de tu reserva para poner la espuma al instante) O Cierre sin coste (gasta la acción principal "Cerrar IPA" en un turno posterior para poner la espuma gratis).
+- ÚLTIMA RONDA Y DESEMPATE: Cuando alguien cierra su 3.ª IPA, se termina la ronda en curso para igualar turnos. Desempate: 1.º Más fichas en reserva oculta, 2.º Más cartas de Acción en mano, 3.º Carta de Bar de 10 ingredientes frente a 9.`,
   initialState: {
     vp: 0,
-    resources: 3,
+    resources: 2, // El Jugador Inicial (Asiento 1) empieza con 2 fichas; los demás con 3 fichas
     engineLevel: 1,
     shield: 0,
     cards: 2,
-    turnOrderCompensation: 0,
+    turnOrderCompensation: 1, // Compensación oficial activa (+1 ficha para los que no salen primero)
     sharedPoolPerPlayer: 14
   },
   winCondition: {
-    targetVP: 10, // ~9.5 ingredientes + cierres de espuma (inmediatos con 1 ficha o con acción Cerrar IPA)
+    targetVP: 10,
     fixedRounds: null,
-    finishRound: false,
-    tieBreaker: 'none'
+    finishRound: true, // Se termina la ronda en curso hasta el último jugador
+    tieBreaker: 'resources (Fichas en reserva > Cartas en mano > Carta Bar 10 ing.)'
   },
   actions: [
     {
@@ -469,6 +479,8 @@ export const laTerceraIpaGame = {
   onTurnStart(player, state) {
     if (state.round === 1) {
       player.cards = 2;
+      // Regla oficial: El Jugador Inicial (seat 0) empieza con 2 fichas; el resto de jugadores empieza con 3 fichas
+      player.resources = player.seat === 0 ? 2 : 3;
     }
   },
   checkEndCondition(state, players) {
