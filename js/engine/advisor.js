@@ -31,11 +31,11 @@ export function generateDesignAdvice(analysis, gameModule) {
         fix: 'Cambia el "Cambio rápido en el Mercado" a: "Devuelve 1 o 2 fichas de tu reserva a la Despensa y toma la misma cantidad (1 o 2 fichas) del Mercado de Abastos", o permite hacer el cambio 2×1 como acción gratuita una vez por turno antes de Cocinar.'
       },
       {
-        severity: 'medium',
-        badge: 'Asimetría en Cartas de Bar 01-09 vs 10-18',
-        title: 'Las Cartas 01 a 09 piden 10 ingredientes (1 turno más de Cocinar) que las Cartas 10 a 18 (9 ingredientes)',
-        description: 'Como la acción "Cocinar" mete exactamente 1 ficha por turno, las Cartas 01–09 (que incluyen la IPA Clásica de 4 ingredientes) exigen 10 turnos de Cocinar frente a los 9 turnos de las Cartas 10–18. Por otro lado, las Cartas 14, 15, 16, 17 y 18 repiten 2 veces el mismo ingrediente especial escaso (2 Frutas Tropicales o 2 Lactosas).',
-        fix: 'Se compensa parcialmente porque la IPA Clásica usa ingredientes básicos abundantes, pero si quieres simetría total al elegir entre una carta de 10 ing. y una de 9 ing., permite que al cocinar en una "IPA Clásica" puedas echar los 2 Lúpulos en la misma acción de Cocinar.'
+        severity: 'ok',
+        badge: 'Equilibrio Asimétrico Perfecto (9 vs 10 ing.)',
+        title: 'Las Cartas 01–09 (10 ing. con IPA Clásica) y las Cartas 10–18 (9 ing. con 3 especiales) tardan los mismos turnos totales',
+        description: 'Las Cartas 01 a 09 exigen 10 turnos de Cocinar (1 ficha por turno), pero 8 de sus 10 ingredientes son básicos ultra-abundantes (58 de las 84 fichas de la bolsa son Lúpulo, Malta o Levadura) y solo piden 2 especiales. Las Cartas 10 a 18 ahorran 1 turno de Cocinar (9 ingredientes), pero exigen reunir 3 ingredientes especiales escasos (Fruta, Lactosa, Café o Pino, de los que solo hay 4 a 7 en toda la bolsa), lo que consume 1–2 turnos extra de búsqueda/Mercado. Ambas vías convergen en los mismos turnos totales por caminos estratégicos distintos.',
+        fix: 'Mantén exactamente 1 ficha por turno al Cocinar y la composición actual de las 18 Cartas de Bar.'
       },
       {
         severity: 'idea',

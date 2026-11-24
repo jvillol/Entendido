@@ -129,7 +129,8 @@ export const BREWMASTER_DECK_SPEC = [
 ];
 
 /**
- * Audita las 18 Cartas de Bar y la oferta/demanda de las 84 fichas de ingredientes.
+ * Audita las 18 Cartas de Bar y la oferta/demanda de las 84 fichas de ingredientes,
+ * modelando la compensación entre Turnos de Cocinado (10 vs 9) y Turnos de Búsqueda de Especiales.
  */
 export function auditBarCardsAndIngredients() {
   const deckMap = {};
@@ -142,37 +143,52 @@ export function auditBarCardsAndIngredients() {
   const cardAudits = BAR_CARDS.map(card => {
     const totals = {};
     let totalIngredientsCount = 0;
+    let specialCount = 0;
+
     for (const rId of card.recipes) {
       const rec = IPA_RECIPES[rId];
       for (const [ingId, qty] of Object.entries(rec.ingredients)) {
         totals[ingId] = (totals[ingId] || 0) + qty;
         totalIngredientsCount += qty;
+        if (deckMap[ingId]?.type === 'especial') {
+          specialCount += qty;
+        }
       }
     }
 
-    let scarcityScore = 0;
+    // Cálculo de turnos esperados:
+    // - Cartas 01-09: 10 turnos de Cocinar + menor coste de búsqueda (solo 2 especiales; 58/84 fichas son básicos)
+    // - Cartas 10-18: 9 turnos de Cocinar + mayor coste de búsqueda (3 especiales escasos de 4-7 fichas en la bolsa)
+    let searchDifficulty = 0;
     const bottlenecks = [];
     for (const [ingId, qty] of Object.entries(totals)) {
       const supply = deckMap[ingId]?.count || 1;
-      const ratio = qty / supply;
-      scarcityScore += ratio * 100;
-      if (ratio >= 0.25) {
-        bottlenecks.push(`${qty}× ${deckMap[ingId].name.split(' ')[0]} (${Math.round(ratio * 100)}% del mazo)`);
+      const isSpecial = deckMap[ingId]?.type === 'especial';
+      // Peso de búsqueda inversamente proporcional a la abundancia en la bolsa de 84 fichas
+      const expectedSearchCost = isSpecial
+        ? (qty * (14 / supply))
+        : (qty * (10 / supply));
+      searchDifficulty += expectedSearchCost;
+
+      if (qty / supply >= 0.25) {
+        bottlenecks.push(`${qty}× ${deckMap[ingId].name.split(' ')[0]} (${supply} en bolsa)`);
       }
     }
 
-    // Penalización por turno extra en las cartas de 10 ingredientes (porque Cocinar mete de 1 en 1)
-    if (totalIngredientsCount === 10) {
-      scarcityScore += 6;
-    }
+    // Índice de Esfuerzo Total (Turnos de Cocinar + Esfuerzo de Búsqueda)
+    const totalEffortScore = Number((totalIngredientsCount * 2.2 + searchDifficulty * 3.1).toFixed(1));
 
     return {
       ...card,
       recipeNames: card.recipes.map(r => IPA_RECIPES[r].name),
       totals,
       totalIngredientsCount,
-      scarcityScore: Number(scarcityScore.toFixed(1)),
-      bottlenecks
+      specialCount,
+      scarcityScore: totalEffortScore,
+      bottlenecks: [
+        `${totalIngredientsCount} turnos Cocinar + ${specialCount} especiales`,
+        ...bottlenecks
+      ]
     };
   });
 
@@ -185,7 +201,7 @@ export function auditBarCardsAndIngredients() {
 
   const ingredientAudits = INGREDIENT_DECK_SPEC.map(ing => {
     const totalDemand18 = demandAcross18Cards[ing.id] || 0;
-    // En 6 jugadores, 6 cartas activas de las 18 (1/3 del total de las 18 cartas)
+    const abundanceRatio = totalDemand18 > 0 ? (ing.count / totalDemand18).toFixed(2) : '-';
     const avgDemand6P = Number((totalDemand18 * (6 / 18)).toFixed(1));
     const maxDemand6P = cardAudits
       .map(c => c.totals[ing.id] || 0)
@@ -193,23 +209,23 @@ export function auditBarCardsAndIngredients() {
       .slice(0, 6)
       .reduce((a, b) => a + b, 0);
 
-    let verdict = 'Equilibrado';
+    let verdict = `Ratio ${abundanceRatio} (Equilibrado)`;
     let verdictClass = 'badge-ok';
 
     if (ing.id === 'agua_pura') {
-      verdict = 'Solo limpia fichas erróneas (Trasvase)';
+      verdict = 'Limpiador táctico (3 en bolsa)';
       verdictClass = 'badge-info';
-    } else if (maxDemand6P > ing.count) {
-      verdict = `Posible disputa en 6J (Máx. ${maxDemand6P} pedidos vs ${ing.count} fichas)`;
-      verdictClass = 'badge-warn';
-    } else if (avgDemand6P / ing.count > 0.78) {
-      verdict = `Alta demanda (${Math.round((avgDemand6P / ing.count) * 100)}% uso medio en 6J)`;
-      verdictClass = 'badge-warn';
+    } else if (ing.type === 'basico') {
+      verdict = `Ratio ${abundanceRatio} (Básico abundante — 58/84 en bolsa)`;
+      verdictClass = 'badge-ok';
+    } else if (ing.count <= 5) {
+      verdict = `Ratio ${abundanceRatio} (Especial escaso — disputa en Mercado)`;
+      verdictClass = 'badge-info';
     }
 
     return {
       ...ing,
-      totalDemand12: `${totalDemand18} (en 18 cartas)`,
+      totalDemand12: `${totalDemand18} veces (Ratio ${abundanceRatio})`,
       avgDemand6P,
       maxDemand6P,
       pressureRatio6P: avgDemand6P / ing.count,
