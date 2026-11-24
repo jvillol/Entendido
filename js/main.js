@@ -1,7 +1,7 @@
 /**
  * js/main.js
  * Punto de entrada de la aplicación web "Entendido".
- * Conecta la interfaz de usuario, el selector de juegos, el parser de reglamentos y el motor Monte Carlo.
+ * Conecta las secciones por juego, el selector, el parser de reglamentos y el motor Monte Carlo.
  */
 
 import { getAllGames, getGameById, registerOrUpdateCustomGame } from './games/registry.js';
@@ -10,24 +10,22 @@ import { analyzeSimulationResults } from './engine/analyzer.js';
 import { generateDesignAdvice } from './engine/advisor.js';
 import { parseDraftRulebook, SAMPLE_DRAFT_RULEBOOK } from './engine/ruleParser.js';
 import { renderDashboard } from './ui/renderer.js';
+import {
+  renderGameSectionsHub,
+  renderDedicatedGameSection,
+  getGameMetadata
+} from './ui/gameSections.js';
 
 let currentGameId = 'la_tercera_ipa';
 
 document.addEventListener('DOMContentLoaded', () => {
-  // Por defecto activar 4, 5 y 6 jugadores para La Tercera IPA
-  const checkboxes = document.querySelectorAll('#playerCountToggles input[type="checkbox"]');
-  checkboxes.forEach(cb => {
-    const val = Number(cb.value);
-    cb.checked = (val >= 4 && val <= 6);
-  });
-
   initGameSelector();
   initSidebarControls();
   initTabs();
   initRulebookEditor();
 
-  // Ejecutar simulación inicial al cargar
-  executeFullAnalysis();
+  // Seleccionar la sección inicial del juego y ejecutar su simulación
+  selectGameSection(currentGameId);
 });
 
 function initGameSelector() {
@@ -40,12 +38,42 @@ function initGameSelector() {
 
   select.value = currentGameId;
   select.addEventListener('change', () => {
-    currentGameId = select.value;
-    syncRulebookTextareaWithActiveGame();
+    selectGameSection(select.value);
+  });
+}
+
+function selectGameSection(gameId) {
+  currentGameId = gameId;
+  const select = document.getElementById('gameSelect');
+  if (select) select.value = currentGameId;
+
+  const game = getGameById(currentGameId);
+  const meta = getGameMetadata(game);
+
+  // Ajustar automáticamente los rangos de jugadores recomendados para la sección de este juego
+  applyPlayerCountsSelection(meta.recommendedCounts);
+
+  // Renderizar el Hub superior de secciones por juego
+  renderGameSectionsHub(getAllGames(), currentGameId, (pickedId) => {
+    selectGameSection(pickedId);
+  });
+
+  // Renderizar la sección exclusiva del juego activo
+  renderDedicatedGameSection(game, (recommendedCounts) => {
+    applyPlayerCountsSelection(recommendedCounts);
     executeFullAnalysis();
+    activateTab('tab-balance');
   });
 
   syncRulebookTextareaWithActiveGame();
+  executeFullAnalysis();
+}
+
+function applyPlayerCountsSelection(counts) {
+  const checkboxes = document.querySelectorAll('#playerCountToggles input[type="checkbox"]');
+  checkboxes.forEach(cb => {
+    cb.checked = counts.includes(Number(cb.value));
+  });
 }
 
 function syncRulebookTextareaWithActiveGame() {
@@ -112,11 +140,8 @@ function initRulebookEditor() {
     const customGame = parseDraftRulebook(title, rawText);
     registerOrUpdateCustomGame(customGame);
 
-    currentGameId = customGame.id;
     initGameSelector();
-    document.getElementById('gameSelect').value = currentGameId;
-
-    executeFullAnalysis();
+    selectGameSection(customGame.id);
     activateTab('tab-ideas');
   });
 }
@@ -124,7 +149,7 @@ function initRulebookEditor() {
 function getSelectedPlayerCounts() {
   const checkboxes = document.querySelectorAll('#playerCountToggles input[type="checkbox"]:checked');
   const counts = Array.from(checkboxes).map(cb => Number(cb.value));
-  return counts.length > 0 ? counts : [2, 3, 4];
+  return counts.length > 0 ? counts : [4, 5, 6];
 }
 
 function executeFullAnalysis() {
