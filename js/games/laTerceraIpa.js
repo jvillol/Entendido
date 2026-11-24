@@ -271,7 +271,7 @@ export const laTerceraIpaGame = {
       { name: 'Lactosa (Blanco / Gris)', qty: '7 fichas', detail: 'Especial (Milkshake IPA)' },
       { name: 'Café y Cacao (Marrón)', qty: '5 fichas', detail: 'Especial (Black IPA)' },
       { name: 'Pino / Resina (Verde pino)', qty: '4 fichas', detail: 'Especial (West Coast IPA)' },
-      { name: 'Agua Pura (Azul)', qty: '3 fichas', detail: 'Limpia 1 ingrediente erróneo del vaso' },
+      { name: 'Agua Pura (Azul)', qty: '3 fichas', detail: 'Limpia 1 ficha errónea O Escudo contra Contaminación/Trasvase' },
       { name: 'Cartas de Bar (Menús)', qty: '18 cartas', detail: 'Cartas 01 a 18 (3 IPAs por carta)' },
       { name: 'Cartas de Acción Cervecera', qty: '24 cartas', detail: '8 tipos de acciones especiales' }
     ],
@@ -291,6 +291,10 @@ export const laTerceraIpaGame = {
       {
         title: 'Despensa Principal y Mercado de Abastos',
         text: 'Mezcla las 84 fichas boca abajo (Despensa), revela 5 fichas boca arriba en el centro (Mercado) y reparte 3 fichas a cada jugador en su reserva oculta (límite de 5 al final del turno).'
+      },
+      {
+        title: 'Acción Gratuita de Turno (Cambio Rápido 2×1 en Mercado)',
+        text: '1 vez por turno (antes o después de tu acción principal), puedes devolver 2 fichas de tu reserva oculta a la Despensa para tomar 1 ficha a tu elección del Mercado y reponer el hueco.'
       }
     ],
     customCards: [
@@ -321,18 +325,18 @@ export const laTerceraIpaGame = {
       }
     ]
   },
-  rulebookText: `LA TERCERA IPA — Reglamento Oficial (2 a 6 jugadores | 35-45 min)
+  rulebookText: `LA TERCERA IPA — Reglamento Oficial Definitivo (2 a 6 jugadores | 35-45 min)
 - OBJETIVO: Completar y cerrar con espuma las 3 IPAs de tu Carta de Bar secreta (elegida entre 2 al inicio de un mazo de 18 Cartas de Bar).
 - INVENTARIO: 18 vasos, algodón (espuma), 84 fichas (25 Lúpulo, 21 Malta, 12 Levadura, 7 Fruta Tropical, 7 Lactosa, 5 Café/Cacao, 4 Pino/Resina, 3 Agua Pura), 18 Cartas de Bar y 24 Cartas de Acción Cervecera.
-- ACCIONES DEL TURNO (Elige 1):
+- CAMBIO RÁPIDO GRATUITO (1 vez por turno): Antes o después de tu acción principal, devuelve 2 fichas de tu reserva a la Despensa para tomar 1 del Mercado y reponer.
+- ACCIONES DEL TURNO (Elige 1 acción principal):
   1. Cosechar: Coge 2 fichas (Mercado / Despensa). Máximo 5 en reserva oculta.
-  2. Cocinar: Coloca 1 ficha de tu reserva boca arriba en un vaso abierto (o usa Agua Pura para limpiar 1 ficha errónea).
-  3. Comerciar: Trueque de 1-2 fichas con un rival, O Cambio rápido en el Mercado (devuelve 2 fichas tuyas a la Despensa y toma 1 del Mercado).
+  2. Cocinar: Coloca 1 ficha de tu reserva boca arriba en un vaso abierto. (Agua Pura: Limpia 1 ficha errónea del vaso O descártala de tu reserva fuera de turno como Escudo contra Contaminación/Trasvase).
+  3. Comerciar: Negocia e intercambia libremente 1 o 2 fichas de tu reserva oculta con otro jugador.
   4. Jugar una Carta de Acción Cervecera (y roba 1 si tienes <2 en mano).
   5. Renovar el Mercado: Descarta las 5 del Mercado, saca 5 nuevas y roba 1 de ellas.
-  6. Cerrar IPA: Coloca la espuma (algodón) en un vaso que tenga los ingredientes exactos de una receta de tu Carta de Bar (gasta turno).`,
+  6. Cerrar IPA: Cierre inmediato con coste (al completar la IPA en tu turno, descarta 1 ficha cualquiera de tu reserva para poner la espuma al instante) O Cierre sin coste (gasta la acción principal "Cerrar IPA" en un turno posterior para poner la espuma gratis).`,
   initialState: {
-    // 12 pasos de progreso total = ~9.5 ingredientes colocados de 1 en 1 + 3 acciones de "Cerrar IPA" con espuma
     vp: 0,
     resources: 3,
     engineLevel: 1,
@@ -342,7 +346,7 @@ export const laTerceraIpaGame = {
     sharedPoolPerPlayer: 14
   },
   winCondition: {
-    targetVP: 12, // 9 ingredientes + 3 acciones de Cerrar IPA = 12 pasos de victoria
+    targetVP: 10, // ~9.5 ingredientes + cierres de espuma (inmediatos con 1 ficha o con acción Cerrar IPA)
     fixedRounds: null,
     finishRound: false,
     tieBreaker: 'none'
@@ -350,14 +354,14 @@ export const laTerceraIpaGame = {
   actions: [
     {
       id: 'cosechar',
-      name: '1. Cosechar (Coger 2 fichas de Mercado / Despensa)',
+      name: '1. Cosechar (+ Cambio Rápido 2×1 gratuito opcional)',
       category: 'economy',
-      description: 'Coge 2 fichas a tu elección (Mercado o Despensa) y repón el Mercado a 5. Límite de 5 fichas en reserva.',
+      description: 'Coge 2 fichas (Mercado o Despensa). Además puedes usar el cambio rápido gratuito (2 tuyas por 1 del Mercado).',
       canExecute: (player) => player.resources < 5,
-      evaluateUtility: (player) => (player.resources <= 1 ? 38 : (player.resources <= 3 ? 19 : 7)),
+      evaluateUtility: (player) => (player.resources <= 1 ? 38 : (player.resources <= 3 ? 21 : 8)),
       execute: (player, state, players) => {
         const totalLocked = players.reduce((acc, p) => acc + p.vp, 0);
-        const supplyRatio = Math.max(0.6, (84 - totalLocked) / 84);
+        const supplyRatio = Math.max(0.65, (84 - totalLocked) / 84);
         const useful = (Math.random() < supplyRatio ? 1 : 0) + (Math.random() < supplyRatio ? 1 : 0);
         const prev = player.resources;
         player.resources = Math.min(5, player.resources + Math.max(1, useful));
@@ -366,58 +370,56 @@ export const laTerceraIpaGame = {
     },
     {
       id: 'cocinar',
-      name: '2. Cocinar (Colocar 1 ficha en un vaso abierto)',
+      name: '2. Cocinar (1 ficha + Cierre inmediato con espuma descartando 1 ficha)',
       category: 'score',
-      description: 'Coloca 1 ficha de tu reserva oculta boca arriba dentro de uno de tus vasos abiertos (o limpia 1 ficha errónea con Agua Pura).',
-      canExecute: (player) => player.resources >= 1 && player.vp < 12 && (player.vp % 4 !== 3),
-      evaluateUtility: (player) => (player.resources >= 1 ? 35 : 15),
+      description: 'Coloca 1 ficha en un vaso abierto. Si completas la IPA y te queda al menos 1 ficha en reserva, puedes descartarla para poner la espuma al instante.',
+      canExecute: (player) => player.resources >= 1 && player.vp < 10,
+      evaluateUtility: (player) => {
+        if (player.vp + 1 >= 10 && player.resources >= 2) return 95;
+        if (player.resources >= 2) return 42;
+        return 26;
+      },
       execute: (player) => {
         player.resources -= 1;
         player.vp += 1;
-        return `Cocina 1 ingrediente en vaso abierto (progreso: ${player.vp}/12)`;
+        // Si completa un vaso (progreso 3, 6 o 10), intenta cierre inmediato con coste (descartando 1 ficha de su reserva)
+        if ((player.vp === 3 || player.vp === 6 || player.vp === 10) && player.resources >= 1) {
+          player.resources -= 1;
+          const closedNum = player.vp === 10 ? 3 : (player.vp === 6 ? 2 : 1);
+          return `Cocina el último ingrediente y descarta 1 ficha de reserva para CERRAR CON ESPUMA al instante su IPA #${closedNum}/3`;
+        }
+        return `Cocina 1 ingrediente en vaso abierto (progreso: ${player.vp}/10)`;
       }
     },
     {
-      id: 'cerrar_ipa',
-      name: '6. Cerrar IPA (Colocar Espuma — Gasta turno)',
+      id: 'cerrar_ipa_gratis',
+      name: '6. Cerrar IPA sin coste (Gasta acción principal si no pagaste 1 ficha)',
       category: 'score',
-      description: 'Coloca el algodón (espuma) sobre un vaso completado para blindarlo. Gasta tu acción del turno.',
-      canExecute: (player) => player.vp % 4 === 3 && player.vp < 12,
-      evaluateUtility: (player) => (player.vp + 1 >= 12 ? 95 : 65),
+      description: 'Coloca la espuma gratis como acción principal en un turno posterior cuando cerraste la receta con 0 fichas en reserva.',
+      canExecute: (player) => (player.vp === 3 || player.vp === 6 || player.vp === 9) && player.resources === 0,
+      evaluateUtility: (player) => (player.vp >= 9 ? 90 : 32),
       execute: (player) => {
-        player.vp += 1;
-        const closedCount = Math.floor(player.vp / 4);
-        return `¡Coloca espuma y blinda su IPA #${closedCount}/3! (Vaso cerrado y protegido)`;
+        if (player.vp === 9) player.vp = 10;
+        const closedCount = player.vp >= 10 ? 3 : (player.vp >= 6 ? 2 : 1);
+        return `Usa acción principal [Cerrar IPA sin coste] y blinda con espuma su IPA #${closedCount}/3`;
       }
     },
     {
       id: 'comerciar_trueque',
-      name: '3A. Comerciar: Trueque con un rival (1-2 fichas)',
+      name: '3. Comerciar (Trueque libre de 1 o 2 fichas con un rival)',
       category: 'economy',
-      description: 'Intercambia libremente 1 o 2 fichas de tu reserva oculta con otro jugador.',
+      description: 'Negocia e intercambia libremente 1 o 2 fichas de tu reserva oculta con otro jugador.',
       canExecute: (player, state, players) =>
         player.resources >= 1 &&
-        player.vp < 9 &&
-        players.some(p => p.seat !== player.seat && p.resources >= 1 && p.vp < 9),
-      evaluateUtility: (player) => (player.resources >= 2 ? 15 : 8),
+        player.vp < 8 &&
+        players.some(p => p.seat !== player.seat && p.resources >= 1 && p.vp < 8),
+      evaluateUtility: (player) => (player.resources >= 2 ? 16 : 9),
       execute: (player, state, players) => {
-        const partner = players.find(p => p.seat !== player.seat && p.resources >= 1 && p.vp < 9);
+        const partner = players.find(p => p.seat !== player.seat && p.resources >= 1 && p.vp < 8);
         if (!partner) return 'Nadie acepta el trueque';
         player.resources = Math.min(5, player.resources + 1);
         partner.resources = Math.min(5, partner.resources + 1);
         return `Trueque exitoso con ${partner.name}`;
-      }
-    },
-    {
-      id: 'comerciar_mercado_2x1',
-      name: '3B. Comerciar: Cambio rápido en Mercado (Entregar 2 por 1)',
-      category: 'defense',
-      description: 'Devuelve 2 fichas de tu reserva a la Despensa y toma 1 del Mercado. (Dominada por Cosechar).',
-      canExecute: (player) => player.resources >= 4,
-      evaluateUtility: () => 1.5,
-      execute: (player) => {
-        player.resources = Math.max(0, player.resources - 1);
-        return `Entrega 2 fichas y toma 1 del Mercado (reserva baja a ${player.resources}/5)`;
       }
     },
     {
@@ -428,29 +430,27 @@ export const laTerceraIpaGame = {
       canExecute: (player) => (player.cards || 0) >= 1,
       evaluateUtility: (player, state, players) => {
         const leader = players.filter(p => p.seat !== player.seat).sort((a, b) => b.vp - a.vp)[0];
-        if (player.vp % 4 === 2) return 46; // Fermentación Acelerada / Dry Hopping Extra
-        return leader && leader.vp >= 8 ? 36 : 20;
+        if (player.vp === 2 || player.vp === 5 || player.vp === 9) return 48; // Fermentación Acelerada / Dry Hopping Extra
+        return leader && leader.vp >= 7 ? 35 : 20;
       },
       execute: (player, state, players) => {
-        // Dry Hopping Extra (meter 2 Lúpulos) o Fermentación Acelerada (ahorra 1 ing + cierra con espuma al instante)
-        if (Math.random() < 0.4 && player.vp < 11) {
-          const boost = Math.min(2, 12 - player.vp);
+        if (Math.random() < 0.42 && player.vp < 10) {
+          const boost = Math.min(2, 10 - player.vp);
           player.vp += boost;
-          return `Juega [Dry Hopping Extra / Fermentación Acelerada] (+${boost} pasos de avance → ${player.vp}/12)`;
+          return `Juega [Dry Hopping Extra / Fermentación Acelerada] (+${boost} progreso → ${player.vp}/10)`;
         }
-        // Sabotaje (Contaminación / Trasvase) a un vaso abierto que aún no tiene espuma
         const target = players
-          .filter(p => p.seat !== player.seat && (p.vp % 4 !== 0))
+          .filter(p => p.seat !== player.seat && (p.vp % 3 !== 0))
           .sort((a, b) => b.vp - a.vp)[0];
         if (target) {
-          // 25% probabilidad de que el rival lo anule con "Maestro Cervecero"
-          if (Math.random() < 0.22) {
-            return `Juega [Contaminación] contra ${target.name}, pero este la anula con [Maestro Cervecero]`;
+          // Puede anularse con Maestro Cervecero (3 cartas) o Escudo de Agua Pura (3 fichas)
+          if (Math.random() < 0.28) {
+            return `Juega [Contaminación / Trasvase] contra ${target.name}, pero este lo bloquea con [Maestro Cervecero / Escudo Agua Pura]`;
           }
           target.vp = Math.max(0, target.vp - 1);
-          return `Juega [Contaminación / Trasvase] sobre el vaso sin espuma de ${target.name} (retrocede a ${target.vp}/12)`;
+          return `Juega [Contaminación / Trasvase] sobre el vaso abierto de ${target.name} (baja a ${target.vp}/10)`;
         }
-        return 'Juega [Cata a Ciegas / Resaca] y repone hasta 2 cartas en mano';
+        return 'Juega [Cata a Ciegas / Inspección / Resaca] y repone hasta 2 cartas en mano';
       }
     },
     {
@@ -459,7 +459,7 @@ export const laTerceraIpaGame = {
       category: 'economy',
       description: 'Descarta las 5 fichas del Mercado, saca 5 nuevas y roba 1 de ellas.',
       canExecute: (player) => player.resources < 5,
-      evaluateUtility: (player) => (player.resources === 4 ? 14 : 9),
+      evaluateUtility: (player) => (player.resources === 4 ? 15 : 10),
       execute: (player) => {
         player.resources = Math.min(5, player.resources + 1);
         return `Renueva las 5 fichas del Mercado y roba 1 ficha (${player.resources}/5)`;
@@ -472,6 +472,6 @@ export const laTerceraIpaGame = {
     }
   },
   checkEndCondition(state, players) {
-    return players.some(p => p.vp >= 12);
+    return players.some(p => p.vp >= 10);
   }
 };

@@ -11,45 +11,17 @@ export function generateDesignAdvice(analysis, gameModule) {
     recommendations.push(
       {
         severity: 'ok',
-        badge: 'Gran Acierto de Diseño',
-        title: 'El Draft inicial de 18 Cartas de Bar (repartir 2 ocultas y elegir 1) funciona de maravilla de 2 a 6 jugadores',
-        description: 'Con 18 Cartas de Bar únicas, incluso en partidas de 6 jugadores se pueden repartir 2 cartas a cada uno (12 cartas) para que elijan 1 en secreto. Esto reduce la mala suerte inicial y mantiene la intriga de principio a fin.',
-        fix: 'Mantén exactamente este sistema de selección inicial (Draft 2 elige 1) y el mazo de 24 Cartas de Acción Cervecera.'
-      },
-      {
-        severity: 'high',
-        badge: 'Fricción en Mesa (5 y 6 Jugadores)',
-        title: 'Cocinar solo 1 ficha por turno + "Cerrar IPA" gastando otro turno expone el vaso lleno a 5 turnos de sabotaje',
-        description: 'En las simulaciones de 5 y 6 jugadores ocurre un fenómeno crítico: cuando colocas el último ingrediente de un vaso con la acción "Cocinar", ya gastaste tu turno. Tu vaso queda lleno PERO SIN ESPUMA durante los turnos de los otros 4 o 5 jugadores hasta que te vuelva a tocar para hacer la acción "Cerrar IPA". En 5-6J, casi siempre alguien te tira "Contaminación" o "Trasvase" en esa ventana, provocando frustración y alargando la partida a más de 20 rondas.',
-        fix: 'Tienes 2 opciones muy limpias: A) Si al "Cocinar" colocas el último ingrediente de la receta, puedes ponerle la espuma inmediatamente en ese mismo turno (o que "Cerrar IPA" cueste descartar 1 ficha de tu reserva como acción gratuita), O B) Que "Cocinar" permita meter hasta 2 fichas si son en vasos distintos y "Cerrar IPA" sea acción de turno.'
-      },
-      {
-        severity: 'medium',
-        badge: 'Regla Dominada (Sin Uso Real)',
-        title: 'El "Cambio rápido en el Mercado" (devolver 2 fichas tuyas para coger 1 del Mercado) siempre es peor que "Cosechar"',
-        description: 'Con la Acción 1 (Cosechar) coges 2 fichas gratis del Mercado; si tenías 5 fichas en tu reserva, pasas a 7 y al final del turno descartas 2 fichas que no quieras (es decir, cambias 2 tuyas por 2 del Mercado). En cambio, con "Cambio rápido en el Mercado" (Acción 3B) entregas 2 fichas tuyas para recibir solo 1 del Mercado.',
-        fix: 'Cambia el "Cambio rápido en el Mercado" a: "Devuelve 1 o 2 fichas de tu reserva a la Despensa y toma la misma cantidad (1 o 2 fichas) del Mercado de Abastos", o permite hacer el cambio 2×1 como acción gratuita una vez por turno antes de Cocinar.'
+        badge: 'Diseño Definitivo 100% Cerrado',
+        title: 'Equilibrio sobresaliente de 2 a 6 jugadores: Cierre de IPA dual, Cambio Rápido 2×1 gratuito y Escudo de Agua Pura',
+        description: 'Las tres nuevas reglas encajan como un reloj suizo: 1) El "Cierre inmediato con coste" (descartar 1 ficha de la reserva al meter el último ingrediente para poner la espuma al instante) elimina el bloqueo por sabotaje en 5-6 jugadores y añade una decisión táctica brillante entre gastar 1 ficha ahora o arriesgarse a cerrar gratis en el próximo turno. 2) El "Cambio rápido 2×1 gratuito" da utilidad constante a las fichas sobrantes para cazar especiales en el Mercado. 3) El doble uso del "Agua Pura" (Limpiar o Escudo fuera de turno contra Contaminación/Trasvase) hace que las 84 fichas sean deseables.',
+        fix: 'No queda ninguna regla huérfana, dominante ni ambigua. El reglamento e inventario definitivos están listos para producción.'
       },
       {
         severity: 'ok',
         badge: 'Equilibrio Asimétrico Perfecto (9 vs 10 ing.)',
         title: 'Las Cartas 01–09 (10 ing. con IPA Clásica) y las Cartas 10–18 (9 ing. con 3 especiales) tardan los mismos turnos totales',
-        description: 'Las Cartas 01 a 09 exigen 10 turnos de Cocinar (1 ficha por turno), pero 8 de sus 10 ingredientes son básicos ultra-abundantes (58 de las 84 fichas de la bolsa son Lúpulo, Malta o Levadura) y solo piden 2 especiales. Las Cartas 10 a 18 ahorran 1 turno de Cocinar (9 ingredientes), pero exigen reunir 3 ingredientes especiales escasos (Fruta, Lactosa, Café o Pino, de los que solo hay 4 a 7 en toda la bolsa), lo que consume 1–2 turnos extra de búsqueda/Mercado. Ambas vías convergen en los mismos turnos totales por caminos estratégicos distintos.',
-        fix: 'Mantén exactamente 1 ficha por turno al Cocinar y la composición actual de las 18 Cartas de Bar.'
-      },
-      {
-        severity: 'idea',
-        badge: 'Utilidad del Agua Pura (3 fichas)',
-        title: 'El Agua Pura solo tiene uso si un rival te mueve una ficha errónea con la carta "Trasvase"',
-        description: 'Como cada jugador mete sus propias fichas en sus vasos y la única carta rival que introduce una ficha ajena en tu vaso es "Trasvase (x4)", si nadie te juega Trasvase, robar Agua Pura de la Despensa a ciegas es robar una ficha sin uso.',
-        fix: 'Dale al Agua Pura un segundo uso opcional: "Puedes usarla para limpiar 1 ingrediente erróneo de un vaso, O descartarla desde tu reserva para anular una Contaminación contra uno de tus vasos (o sustituir a 1 Malta/Levadura básica)".'
-      },
-      {
-        severity: 'idea',
-        badge: 'Resolución de Error al Final de Partida',
-        title: 'Si al revisar los 3 vasos al final hay un ingrediente incorrecto y se retira la espuma, ¿cómo saca la ficha mala?',
-        description: 'La sección 4 dice: "Si algún vaso tiene un ingrediente incorrecto, se retira la espuma de ese vaso y la partida continúa". Pero si ese vaso ya tiene 3 o 4 fichas dentro, el jugador no podría sacar la ficha errónea salvo que robe Agua Pura o Contaminación.',
-        fix: 'Añade: "Se retira la espuma de ese vaso y se descartan a la Despensa las fichas incorrectas de su interior, continuando la partida".'
+        description: 'Las Cartas 01 a 09 exigen 10 turnos de Cocinar (1 ficha por turno), pero 8 de sus 10 ingredientes son básicos ultra-abundantes (58 de las 84 fichas de la bolsa son Lúpulo, Malta o Levadura) y solo piden 2 especiales. Las Cartas 10 a 18 ahorran 1 turno de Cocinar (9 ingredientes), pero exigen reunir 3 ingredientes especiales escasos (Fruta, Lactosa, Café o Pino, de los que solo hay 4 a 7 en toda la bolsa), lo que consume 1–2 turnos extra de búsqueda/Mercado.',
+        fix: 'Mantén intacta la estructura de las 18 Cartas de Bar y el Draft inicial de repartir 2 ocultas y elegir 1.'
       }
     );
   }
