@@ -1,12 +1,15 @@
 /**
  * js/ui/playtableUI.js
- * Interfaz visual e interactiva para jugar "LA TERCERA IPA" en primera persona (POV Jugador)
- * contra 1 a 5 jugadores controlados por la IA (partidas de 2 a 6 jugadores).
+ * Mesa visual 3D para jugar "LA TERCERA IPA" en primera persona (POV Jugador) contra 1 a 5 IAs.
+ * Renderiza fichas circulares físicas (cara arriba y dorso oscuro), vasos de chupito con cerveza y espuma,
+ * cartas físicas ilustradas y un escenario central en vivo donde se ve cada carta y ficha que juegan los rivales.
  */
 
 import { IPA_RECIPES } from '../games/laTerceraIpa.js';
 import {
   INGREDIENT_LABELS,
+  INGREDIENT_ICONS,
+  CARD_ICONS,
   createInteractiveMatch,
   getActivePlayer,
   selectHumanBarCard,
@@ -30,6 +33,7 @@ let matchState = null;
 let uiMode = null; // null | 'HARVEST' | 'COOK' | 'FREE_SWAP' | 'TRADE' | 'PLAY_CARD'
 let uiSelection = {};
 let aiTimer = null;
+let aiSpeedMs = 1500; // 1500 (Normal para ver bien las cartas/fichas de la IA) | 800 (Rápido) | 0 (Paso a Paso Manual)
 
 export function initPlaytableSection() {
   const container = document.getElementById('interactivePlaytableRoot');
@@ -46,6 +50,20 @@ export function startNewMatch(numPlayers) {
   renderPlaytable();
 }
 
+/**
+ * Renderiza una ficha circular 3D física con icono, color y nombre.
+ */
+function renderCircularToken(ingId, sizeClass = '', extraClass = '', dataAttr = '') {
+  const icon = INGREDIENT_ICONS[ingId] || '🍺';
+  const label = INGREDIENT_LABELS[ingId] || ingId;
+  return `
+    <div class="token-circle ing-${ingId} ${sizeClass} ${extraClass}" ${dataAttr} title="${label}">
+      <span class="token-icon">${icon}</span>
+      <span class="token-name">${label.split(' ')[0]}</span>
+    </div>
+  `;
+}
+
 function renderPlaytable() {
   const container = document.getElementById('interactivePlaytableRoot');
   if (!container || !matchState) return;
@@ -54,28 +72,35 @@ function renderPlaytable() {
   const human = matchState.players[0];
   const isMyTurn = matchState.phase === 'PLAYING' && activePlayer.isHuman;
 
-  // Barra superior de configuración de partida vs IA
+  // Barra superior de configuración de partida vs IA y velocidad de animación
   const controlsHtml = `
     <div class="playtable-ControlsBar">
       <div class="controls-left">
-        <strong>🎮 Modo Jugable vs IA (POV Jugador):</strong>
-        <label for="playtablePlayerCountSelect" class="helper-text">Jugadores en mesa:</label>
-        <select id="playtablePlayerCountSelect" class="input-select-sm" style="min-width:150px;">
+        <strong>🎲 Mesa de Juego vs IA:</strong>
+        <select id="playtablePlayerCountSelect" class="input-select-sm" style="min-width:165px;">
           ${[2, 3, 4, 5, 6].map(n => `
             <option value="${n}" ${matchState.numPlayers === n ? 'selected' : ''}>
-              ${n} Jugadores (Tú + ${n - 1} IA)
+              👥 ${n} Jugadores (Tú + ${n - 1} IA)
             </option>
           `).join('')}
+        </select>
+        <select id="aiSpeedSelect" class="input-select-sm" style="min-width:175px;">
+          <option value="1500" ${aiSpeedMs === 1500 ? 'selected' : ''}>⏱️ Ritmo IA: Normal (1.5s)</option>
+          <option value="800" ${aiSpeedMs === 800 ? 'selected' : ''}>⚡ Ritmo IA: Rápido (0.8s)</option>
+          <option value="0" ${aiSpeedMs === 0 ? 'selected' : ''}>⏸️ Ritmo IA: Paso a Paso</option>
         </select>
         <button type="button" id="restartPlaytableBtn" class="btn btn-secondary">🔄 Nueva Partida</button>
       </div>
       <div class="controls-right">
+        ${(matchState.phase === 'PLAYING' && !activePlayer.isHuman && aiSpeedMs === 0)
+          ? `<button type="button" id="stepNextAiBtn" class="btn btn-primary">▶ Ejecutar Turno de ${activePlayer.name}</button>`
+          : ''}
         <span class="badge badge-accent">Ronda ${matchState.round}</span>
         ${matchState.finalRoundTriggered
-          ? `<span class="badge badge-danger">🔔 ¡ÚLTIMA RONDA! (Activada por ${matchState.finalRoundTriggeredBy})</span>`
+          ? `<span class="badge badge-danger">🔔 ¡ÚLTIMA RONDA! (${matchState.finalRoundTriggeredBy})</span>`
           : ''}
         <span class="badge ${isMyTurn ? 'badge-ok' : 'badge-warn'}">
-          Turno actual: ${matchState.phase === 'DRAFT_BAR_CARD' ? 'Eligiendo Carta de Bar' : activePlayer.name}
+          Turno: ${matchState.phase === 'DRAFT_BAR_CARD' ? 'Eligiendo Menú' : activePlayer.name}
         </span>
       </div>
     </div>
@@ -94,12 +119,15 @@ function renderPlaytable() {
     return;
   }
 
-  // Si la partida ha terminado (Fin de la Última Ronda y Triple Desempate)
+  // Banner si la partida ha terminado
   const gameOverBannerHtml = matchState.phase === 'GAME_OVER'
     ? renderGameOverBanner(matchState)
     : '';
 
-  // Zona de Rivales IA
+  // Escenario en vivo de la última jugada (muestra visualmente las fichas cogidas o la carta jugada por la IA o por ti)
+  const liveStageHtml = renderLiveActionStage(matchState.lastVisualEvent);
+
+  // Zona de Rivales IA con sus fichas físicas boca abajo, sus cartas en abanico y sus 3 vasos 3D
   const aiPlayers = matchState.players.slice(1);
   const aiGridHtml = `
     <div class="ai-opponents-grid">
@@ -107,39 +135,54 @@ function renderPlaytable() {
     </div>
   `;
 
-  // Centro de la Mesa: Mercado de Abastos (5 fichas boca arriba) y Despensa Principal
+  // Centro de la Mesa: Tapete del Mercado de Abastos (5 fichas circulares 3D), Bolsa de la Despensa y Mazo de Cartas
+  const topDiscard = matchState.actionDiscard[matchState.actionDiscard.length - 1];
   const centerZoneHtml = `
     <div class="table-center-zone">
       <div class="market-board">
         <div class="flex-between">
           <div>
-            <h4 style="font-size:14px; font-weight:700;">🛒 Mercado de Abastos (5 Fichas Visibles)</h4>
-            <p class="helper-text">Haz clic en las fichas cuando estés Cosechando o haciendo el Cambio Rápido 2×1.</p>
+            <h4 style="font-size:14.5px; font-weight:800;">🛒 Mercado de Abastos (5 Fichas Boca Arriba)</h4>
+            <p class="helper-text">Haz clic en cualquier ficha circular para Cosecharla o incluirla en un Cambio Rápido 2×1.</p>
           </div>
-          <span class="badge badge-info">${matchState.market.length}/5 visibles</span>
+          <span class="badge badge-info">${matchState.market.length}/5 Fichas</span>
         </div>
         <div class="market-slots">
           ${matchState.market.map((ing, idx) => {
             const isSelected = (uiMode === 'HARVEST' && (uiSelection.marketIndices || []).includes(idx)) ||
                                (uiMode === 'FREE_SWAP' && uiSelection.marketIdx === idx);
             return `
-              <button type="button" class="ing-chip ing-${ing} ${isSelected ? 'selected' : ''}" data-market-idx="${idx}">
-                ● ${INGREDIENT_LABELS[ing]}
-              </button>
+              <div class="market-slot-ring">
+                ${renderCircularToken(ing, '', isSelected ? 'selected' : '', `data-market-idx="${idx}"`)}
+              </div>
             `;
           }).join('')}
         </div>
       </div>
 
-      <div class="pantry-box">
-        <div>
-          <h4 style="font-size:14px; font-weight:700;">🎒 Despensa Principal y Mazos</h4>
-          <p class="helper-text">Bolsa opaca para robos a ciegas y reposición del Mercado.</p>
+      <div class="decks-table-board">
+        <div class="physical-pantry-bag" id="clickablePantryBag" title="Haz clic para coger 1 ficha a ciegas de la Despensa al Cosechar">
+          <div class="bag-icon-3d">🎒</div>
+          <strong style="font-size:12px;">Despensa (${matchState.pantry.length})</strong>
+          <span class="helper-text" style="font-size:10.5px;">Robar a ciegas</span>
         </div>
-        <div class="ai-stats-row" style="flex-wrap:wrap; gap:12px;">
-          <span class="spec-pill"><strong>Despensa:</strong> ${matchState.pantry.length} fichas</span>
-          <span class="spec-pill"><strong>Mazo Acción:</strong> ${matchState.actionDeck.length} cartas</span>
-          <span class="spec-pill"><strong>Descartes:</strong> ${matchState.actionDiscard.length}</span>
+
+        <div class="physical-card-pile">
+          <div class="deck-stack-3d">
+            <span>🃏</span>
+            <strong style="font-size:11px; margin-top:4px;">${matchState.actionDeck.length}</strong>
+          </div>
+          <span class="helper-text" style="font-size:11px;">Mazo Acción</span>
+        </div>
+
+        <div class="physical-card-pile">
+          <div class="discard-stack-3d ${topDiscard ? 'has-card' : ''}">
+            ${topDiscard
+              ? `<span style="font-size:20px;">${CARD_ICONS[topDiscard.id] || '🃏'}</span>
+                 <strong style="font-size:9.5px; color:#fde047; line-height:1.1; margin-top:3px;">${topDiscard.name}</strong>`
+              : '<span class="helper-text" style="font-size:10px;">Vacío</span>'}
+          </div>
+          <span class="helper-text" style="font-size:11px;">Descartes (${matchState.actionDiscard.length})</span>
         </div>
       </div>
     </div>
@@ -152,9 +195,9 @@ function renderPlaytable() {
   const liveLogHtml = `
     <div class="card">
       <div class="card-header">
-        <h3>📜 Crónica de la Mesa en Vivo</h3>
+        <h3>📜 Registro Completo de Jugadas</h3>
       </div>
-      <div class="match-log-viewer" style="max-height:200px;">
+      <div class="match-log-viewer" style="max-height:175px;">
         ${matchState.log.map(line => `<div class="log-event">• ${line}</div>`).join('')}
       </div>
     </div>
@@ -164,6 +207,7 @@ function renderPlaytable() {
     <div class="playtable-wrapper">
       ${controlsHtml}
       ${gameOverBannerHtml}
+      ${liveStageHtml}
       ${aiGridHtml}
       ${centerZoneHtml}
       ${humanZoneHtml}
@@ -174,13 +218,73 @@ function renderPlaytable() {
   bindControlEvents();
   bindGameplayEvents(isMyTurn);
 
-  // Si es el turno de una IA y la partida sigue en curso, ejecutar turno de la IA con breve pausa visual
-  if (matchState.phase === 'PLAYING' && !activePlayer.isHuman) {
+  // Si es el turno de una IA y el ritmo es automático (>0 ms), ejecutar turno tras la pausa
+  if (matchState.phase === 'PLAYING' && !activePlayer.isHuman && aiSpeedMs > 0) {
     aiTimer = setTimeout(() => {
       executeAITurn(matchState);
       renderPlaytable();
-    }, 650);
+    }, aiSpeedMs);
   }
+}
+
+/**
+ * Renderiza el Escenario Central de Jugada en Vivo, mostrando visualmente las fichas o la carta que acaba de usar un jugador.
+ */
+function renderLiveActionStage(ev) {
+  if (!ev) {
+    return `
+      <div class="live-action-stage">
+        <div class="stage-left">
+          <div class="stage-actor-avatar">🍺</div>
+          <div>
+            <strong style="font-size:14.5px;">Mesa Lista — ¡Comienza la elaboración!</strong>
+            <p class="helper-text">Aquí verás en grande las fichas y cartas que jueguen tus rivales en cada turno.</p>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  let visualItemsHtml = '';
+
+  // Si se jugó una Carta de Acción Cervecera, mostrar la carta física ilustrada
+  if (ev.card) {
+    const cIcon = CARD_ICONS[ev.card.id] || '🃏';
+    visualItemsHtml += `
+      <div class="physical-action-card card-showcase-sm">
+        <div class="pcard-header">
+          <span class="pcard-title">${cIcon} ${ev.card.name}</span>
+        </div>
+        <div class="pcard-desc" style="font-size:10px;">${ev.card.text}</div>
+      </div>
+    `;
+  }
+
+  // Si se movieron, robaron o cocinaron fichas, mostrar las fichas circulares físicas
+  if (ev.tiles && ev.tiles.length > 0) {
+    visualItemsHtml += ev.tiles.map(t => {
+      if (t.visible) {
+        return renderCircularToken(t.id);
+      }
+      return `<div class="token-facedown" style="width:58px; height:58px; font-size:18px;" title="Ficha robada a ciegas de la Despensa">🂠</div>`;
+    }).join('');
+  }
+
+  return `
+    <div class="live-action-stage">
+      <div class="stage-left">
+        <div class="stage-actor-avatar">${ev.actorSeat === 0 ? '🧑‍🍳' : '🤖'}</div>
+        <div>
+          <span class="badge badge-accent" style="margin-bottom:3px;">Última Jugada en Mesa (Ronda ${ev.round})</span>
+          <h4 style="font-size:15.5px; font-weight:800; color:#f8fafc;">${ev.title}</h4>
+          <p class="helper-text" style="color:#cbd5e1; font-size:13px;">${ev.subtitle}</p>
+        </div>
+      </div>
+      <div class="stage-visual-Showcase">
+        ${visualItemsHtml}
+      </div>
+    </div>
+  `;
 }
 
 function renderDraftBarCardModal(human) {
@@ -188,11 +292,13 @@ function renderDraftBarCardModal(human) {
     <div class="draft-modal-box">
       <div>
         <span class="badge badge-accent">Preparación — Paso 2 del Reglamento</span>
-        <h3 style="font-size:20px; margin-top:6px;">Elige tu Carta de Bar Secreta (Draft: 2 cartas, elige 1)</h3>
-        <p class="helper-text">
-          Tus fichas iniciales en reserva oculta (${human.isFirstPlayer ? '2 por ser Jugador Inicial' : '3 fichas'}):
-          ${human.reserve.map(ing => `<span class="ing-chip ing-sm ing-${ing}">● ${INGREDIENT_LABELS[ing]}</span>`).join(' ')}
+        <h3 style="font-size:21px; margin-top:6px;">Elige tu Carta de Bar Secreta (Se reparten 2, elige 1)</h3>
+        <p class="helper-text" style="margin-top:4px;">
+          Tus fichas iniciales en reserva oculta (${human.isFirstPlayer ? '2 fichas por ser el Jugador Inicial ⭐' : '3 fichas'}):
         </p>
+        <div style="display:flex; gap:12px; justify-content:center; margin-top:10px;">
+          ${human.reserve.map(ing => renderCircularToken(ing)).join('')}
+        </div>
       </div>
       <div class="draft-cards-pair">
         ${human.draftPair.map(card => {
@@ -200,25 +306,25 @@ function renderDraftBarCardModal(human) {
           return `
             <div class="draft-option-card" data-draft-card-id="${card.id}">
               <div class="flex-between">
-                <strong style="font-size:16px;">📜 ${card.name}</strong>
-                <span class="badge badge-info">${totalIng} ingredientes totales</span>
+                <strong style="font-size:16.5px; color:#fbbf24;">📜 ${card.name}</strong>
+                <span class="badge badge-info">${totalIng} ingredientes</span>
               </div>
               <div class="rule-step-list">
                 ${card.recipes.map(rId => {
                   const rec = IPA_RECIPES[rId];
                   const ingBadges = Object.entries(rec.ingredients)
-                    .map(([k, q]) => `<span class="ing-chip ing-sm ing-${k}">${q}× ${INGREDIENT_LABELS[k]}</span>`)
+                    .map(([k, q]) => `<span class="ing-chip-pill ing-${k}">${INGREDIENT_ICONS[k]} ${q}× ${INGREDIENT_LABELS[k]}</span>`)
                     .join(' ');
                   return `
                     <div class="bar-recipe-item">
                       <strong>🍺 ${rec.name} (${rec.size} ing.)</strong>
-                      <div style="display:flex; gap:4px; flex-wrap:wrap; margin-top:4px;">${ingBadges}</div>
+                      <div style="display:flex; gap:5px; flex-wrap:wrap; margin-top:4px;">${ingBadges}</div>
                     </div>
                   `;
                 }).join('')}
               </div>
               <button type="button" class="btn btn-primary btn-block" style="margin-top:auto;">
-                ✔ Quedarme con ${card.name}
+                ✔ Elegir ${card.name} en Secreto
               </button>
             </div>
           `;
@@ -230,33 +336,58 @@ function renderDraftBarCardModal(human) {
 
 function renderAIOpponentCard(ai, isActiveTurn, revealSecretMenu) {
   const closedCount = countClosedGlasses(ai);
+
+  // Fichas circulares boca abajo (dorso oscuro) en la reserva de la IA
+  const facedownTokensHtml = ai.reserve.length === 0
+    ? '<span class="helper-text" style="font-size:10.5px;">0 fichas</span>'
+    : ai.reserve.map(() => `<span class="token-facedown" title="Ficha oculta en la reserva de ${ai.name}">●</span>`).join('');
+
+  // Cartas de Acción en mano de la IA (abanico físico)
+  const handFanHtml = ai.hand.length === 0
+    ? '<span class="helper-text" style="font-size:10.5px;">0 cartas</span>'
+    : ai.hand.map(() => `<span class="mini-card-back" title="Carta de Acción Cervecera en mano">🃏</span>`).join('');
+
   return `
     <div class="ai-player-card ${isActiveTurn ? 'active-turn' : ''}">
       <div class="ai-header">
         <span>🤖 ${ai.name} ${ai.isFirstPlayer ? '⭐(1.º)' : ''}</span>
         <span class="badge ${closedCount >= 2 ? 'badge-warn' : 'badge-accent'}">${closedCount}/3 IPAs</span>
       </div>
-      <div class="ai-stats-row">
-        <span>🂠 Reserva oculta: <strong>${ai.reserve.length}/5</strong></span>
-        <span>🃏 Cartas Acción: <strong>${ai.hand.length}</strong></span>
+
+      <!-- Inventario Físico Visible del Rival: Carta de Bar boca abajo, Fichas Circulares Ocultas y Cartas en Mano -->
+      <div class="ai-physical-inventory">
+        <div style="display:flex; align-items:center; gap:6px;" title="Carta de Bar Secreta">
+          <div class="mini-bar-card-back">📜</div>
+        </div>
+        <div class="ai-facedown-tokens" title="Reserva oculta: ${ai.reserve.length}/5 fichas">
+          ${facedownTokensHtml}
+        </div>
+        <div class="ai-hand-fan" title="Cartas de Acción en mano: ${ai.hand.length}">
+          ${handFanHtml}
+        </div>
       </div>
+
       ${revealSecretMenu && ai.barCard
-        ? `<div class="helper-text" style="color:#a5b4fc;">Menú secreto: <strong>${ai.barCard.name}</strong> (${ai.barCard.recipes.map(r => IPA_RECIPES[r].name).join(' + ')})</div>`
-        : '<div class="helper-text">🔒 Carta de Bar cubierta</div>'}
+        ? `<div class="helper-text" style="color:#fde047;">Menú revelado: <strong>${ai.barCard.name}</strong> (${ai.barCard.recipes.map(r => IPA_RECIPES[r].name).join(' + ')})</div>`
+        : ''}
+
+      <!-- Los 3 Vasos de Chupito 3D de la IA con sus fichas circulares dentro -->
       <div class="mini-glasses-row">
-        ${ai.glasses.map((g, idx) => `
-          <div class="mini-glass ${g.closed ? 'closed-foam' : ''}">
-            <div class="mini-glass-title">
-              <span>Vaso #${idx + 1}</span>
-              <span>${g.closed ? '☁️ Espuma' : 'Abierto'}</span>
+        ${ai.glasses.map((g, idx) => {
+          const fillLevel = Math.min(3, g.ingredients.length);
+          return `
+            <div class="mini-glass-3d has-beer-${fillLevel} ${g.closed ? 'closed-foam' : ''}">
+              ${g.closed
+                ? `<div class="foam-crown-mini">☁️ ESPUMA</div>`
+                : `<div class="mini-glass-title"><span>Vaso #${idx + 1}</span></div>`}
+              <div style="display:flex; flex-wrap:wrap; gap:3px; justify-content:center; align-items:center; margin:auto 0;">
+                ${g.ingredients.length === 0
+                  ? '<span class="helper-text" style="font-size:9.5px;">Vacío</span>'
+                  : g.ingredients.map(ing => renderCircularToken(ing, 'token-xs')).join('')}
+              </div>
             </div>
-            <div style="display:flex; flex-wrap:wrap; gap:3px;">
-              ${g.ingredients.length === 0
-                ? '<span class="helper-text" style="font-size:10px;">Vacío</span>'
-                : g.ingredients.map(ing => `<span class="ing-chip ing-sm ing-${ing}" style="font-size:9.5px; padding:1px 5px;">${INGREDIENT_LABELS[ing].split(' ')[0]}</span>`).join('')}
-            </div>
-          </div>
-        `).join('')}
+          `;
+        }).join('')}
       </div>
     </div>
   `;
@@ -275,16 +406,16 @@ function renderHumanPOVZone(human, isMyTurn) {
     const isCompleted = seenSoFar <= countClosedOfThis;
 
     const ingList = Object.entries(rec.ingredients)
-      .map(([k, q]) => `<span class="ing-chip ing-sm ing-${k}">${q}× ${INGREDIENT_LABELS[k]}</span>`)
+      .map(([k, q]) => `<span class="ing-chip-pill ing-${k}">${INGREDIENT_ICONS[k]} ${q}× ${INGREDIENT_LABELS[k]}</span>`)
       .join(' ');
 
     return `
       <div class="bar-recipe-item ${isCompleted ? 'recipe-done' : ''}">
         <div class="flex-between">
-          <strong>${isCompleted ? '✅' : '🍺'} ${rIdx + 1}. ${rec.name} (${rec.size} ing.)</strong>
-          ${isCompleted ? '<span class="badge badge-ok">Servida con Espuma</span>' : ''}
+          <strong>${isCompleted ? '✅' : '🍺'} ${rIdx + 1}. ${rec.name} (${rec.size})</strong>
+          ${isCompleted ? '<span class="badge badge-ok">☁️ Servida</span>' : ''}
         </div>
-        <div style="display:flex; gap:4px; flex-wrap:wrap; margin-top:4px;">${ingList}</div>
+        <div style="display:flex; gap:4px; flex-wrap:wrap;">${ingList}</div>
       </div>
     `;
   }).join('');
@@ -292,38 +423,42 @@ function renderHumanPOVZone(human, isMyTurn) {
   const glassesHtml = human.glasses.map((g, idx) => {
     const matchingRec = checkGlassMatchesPendingRecipe(human, idx);
     const missingOneRec = checkGlassMissingOneIngredient(human, idx);
+    const fillLevel = Math.min(4, g.ingredients.length);
+
     return `
-      <div class="shot-glass-card ${g.closed ? 'glass-closed' : (matchingRec ? 'glass-ready' : '')}">
-        <div>
-          <div class="flex-between">
-            <strong>🥃 Tu Vaso #${idx + 1}</strong>
-            ${g.closed
-              ? `<span class="badge badge-ok">☁️ Blindado (${IPA_RECIPES[g.matchedRecipeId]?.name || 'IPA'})</span>`
-              : (matchingRec
-                  ? `<span class="badge badge-ok">¡Receta ${matchingRec.name} Lista!</span>`
-                  : `<span class="badge badge-accent">Abierto (${g.ingredients.length} fichas)</span>`)}
-          </div>
-          <div class="glass-ingredients-list">
-            ${g.ingredients.length === 0
-              ? '<span class="helper-text">Vaso vacío — Usa "Cocinar" para añadir fichas</span>'
-              : g.ingredients.map(ing => `<span class="ing-chip ing-sm ing-${ing}">● ${INGREDIENT_LABELS[ing]}</span>`).join('')}
-          </div>
+      <div class="shot-glass-3d beer-fill-${fillLevel} ${g.closed ? 'glass-closed' : (matchingRec ? 'glass-ready' : '')}">
+        ${g.closed
+          ? `<div class="cotton-foam-badge">☁️ ESPUMA (${IPA_RECIPES[g.matchedRecipeId]?.name || 'IPA'})</div>`
+          : ''}
+        <div class="flex-between">
+          <strong>🥃 Vaso #${idx + 1}</strong>
+          ${g.closed
+            ? `<span class="badge badge-ok">Blindado</span>`
+            : (matchingRec
+                ? `<span class="badge badge-ok">¡${matchingRec.name} Lista!</span>`
+                : `<span class="badge badge-accent">${g.ingredients.length} fichas</span>`)}
         </div>
+
+        <div class="glass-tokens-well">
+          ${g.ingredients.length === 0
+            ? '<span class="helper-text" style="text-align:center;">Vaso vacío<br/>Haz clic en una ficha de tu reserva para cocinarla aquí</span>'
+            : g.ingredients.map(ing => renderCircularToken(ing, 'token-md')).join('')}
+        </div>
+
         <div style="display:flex; flex-direction:column; gap:6px;">
           ${!g.closed && matchingRec && isMyTurn
             ? `<button type="button" class="btn btn-primary btn-block close-free-btn" data-glass-idx="${idx}">
-                 ☁️ Cerrar IPA Gratis (Gasta tu Acción)
+                 ☁️ Cerrar IPA Gratis (Gasta Turno)
                </button>`
             : ''}
           ${!g.closed && missingOneRec
-            ? `<div class="helper-text" style="color:#34d399;">⚡ A falta de 1 ing. para ${missingOneRec.name} (Apto para Fermentación Acelerada)</div>`
+            ? `<div class="helper-text" style="color:#34d399; text-align:center;">⚡ A falta de 1 ing. para ${missingOneRec.name}</div>`
             : ''}
         </div>
       </div>
     `;
   }).join('');
 
-  // Panel contextual según la acción que esté ejecutando el jugador
   const promptPanelHtml = renderActionPromptPanel(human, isMyTurn);
 
   return `
@@ -331,9 +466,9 @@ function renderHumanPOVZone(human, isMyTurn) {
       <div class="flex-between">
         <div>
           <span class="badge ${isMyTurn ? 'badge-ok' : 'badge-accent'}">
-            ${isMyTurn ? '🟢 ES TU TURNO — Elige 1 Acción Principal' : '⏳ Esperando turno de la IA...'}
+            ${isMyTurn ? '🟢 ES TU TURNO — Elige 1 Acción Principal o haz clic en fichas/cartas' : '⏳ Observando jugada de la IA...'}
           </span>
-          <h3 style="font-size:18px; margin-top:4px;">🧑‍🍳 Tu Puesto de Maestro Cervecero ${human.isFirstPlayer ? '(Jugador Inicial ⭐)' : ''}</h3>
+          <h3 style="font-size:18px; margin-top:4px;">🧑‍🍳 Tu Puesto de Elaboración ${human.isFirstPlayer ? '(Jugador Inicial ⭐)' : ''}</h3>
         </div>
         <div>
           <button type="button" id="startFreeSwapBtn" class="btn btn-secondary" ${(!isMyTurn || matchState.usedFreeMarketSwap || human.reserve.length < 2) ? 'disabled' : ''}>
@@ -347,10 +482,9 @@ function renderHumanPOVZone(human, isMyTurn) {
       <div class="pov-top-grid">
         <div class="secret-bar-card">
           <div class="flex-between">
-            <strong>🔒 Tu Carta de Bar (${barCard.name})</strong>
-            <span class="badge badge-info">Secreta</span>
+            <strong style="color:#fbbf24;">📜 ${barCard.name}</strong>
+            <span class="badge badge-info">Menú Secreto</span>
           </div>
-          <p class="helper-text">Completa estas 3 recetas en tus 3 vasos y ciérralas con espuma:</p>
           ${recipesHtml}
         </div>
 
@@ -362,41 +496,39 @@ function renderHumanPOVZone(human, isMyTurn) {
       <div class="pov-bottom-grid">
         <div class="reserve-box">
           <div class="flex-between">
-            <strong>🂠 Tu Reserva Oculta (${human.reserve.length}/5 fichas)</strong>
-            <span class="helper-text">Solo tú puedes verlas (máx. 5 al final del turno)</span>
+            <strong>🂠 Tu Reserva Oculta de Fichas (${human.reserve.length}/5)</strong>
+            <span class="helper-text">Haz clic en una ficha para Cocinarla o Comerciar</span>
           </div>
-          <div style="display:flex; gap:8px; flex-wrap:wrap; min-height:38px; align-items:center;">
+          <div style="display:flex; gap:12px; flex-wrap:wrap; min-height:74px; align-items:center; padding:4px 0;">
             ${human.reserve.length === 0
-              ? '<span class="helper-text">No tienes fichas en tu reserva oculta. ¡Usa Cosechar!</span>'
+              ? '<span class="helper-text">Reserva vacía — Coge fichas del Mercado o de la Despensa.</span>'
               : human.reserve.map((ing, idx) => {
                   const isSel = (uiMode === 'COOK' && uiSelection.reserveIdx === idx) ||
                                 (uiMode === 'FREE_SWAP' && (uiSelection.reserveIndices || []).includes(idx)) ||
                                 (uiMode === 'TRADE' && uiSelection.reserveIdx === idx);
-                  return `
-                    <button type="button" class="ing-chip ing-${ing} ${isSel ? 'selected' : ''}" data-reserve-idx="${idx}">
-                      ● ${INGREDIENT_LABELS[ing]}
-                    </button>
-                  `;
+                  return renderCircularToken(ing, '', isSel ? 'selected' : '', `data-reserve-idx="${idx}"`);
                 }).join('')}
           </div>
         </div>
 
         <div class="hand-cards-box">
           <div class="flex-between">
-            <strong>🃏 Tus Cartas de Acción Cervecera (${human.hand.length}/2 en mano)</strong>
-            <span class="helper-text">Se repone 1 al final del turno si juegas una</span>
+            <strong>🃏 Tu Mano de Cartas de Acción Cervecera (${human.hand.length}/2)</strong>
+            <span class="helper-text">Robas 1 al final del turno si tienes &lt;2</span>
           </div>
           <div class="action-cards-list">
             ${human.hand.length === 0
               ? '<span class="helper-text">Sin cartas especiales en mano.</span>'
               : human.hand.map((card, idx) => `
-                  <div class="brew-action-card">
-                    <div>
-                      <strong>${card.name}</strong>
-                      <p class="helper-text" style="font-size:11.5px; margin-top:2px;">${card.text}</p>
+                  <div class="physical-action-card">
+                    <div class="pcard-header">
+                      <span class="pcard-title">${card.name}</span>
+                      <span class="badge badge-accent">Acción</span>
                     </div>
-                    <button type="button" class="btn btn-secondary btn-block play-card-init-btn" data-hand-idx="${idx}" ${!isMyTurn ? 'disabled' : ''}>
-                      🃏 Jugar Carta
+                    <div class="pcard-art">${CARD_ICONS[card.id] || '🃏'}</div>
+                    <div class="pcard-desc">${card.text}</div>
+                    <button type="button" class="btn btn-primary btn-block play-card-init-btn" data-hand-idx="${idx}" ${!isMyTurn ? 'disabled' : ''}>
+                      Jugar Carta
                     </button>
                   </div>
                 `).join('')}
@@ -404,7 +536,7 @@ function renderHumanPOVZone(human, isMyTurn) {
         </div>
       </div>
 
-      <!-- Barra de las 6 Acciones Principales del Turno -->
+      <!-- Barra de Acciones Principales del Turno -->
       <div class="turn-actions-toolbar">
         <button type="button" id="btnActionHarvest" class="btn btn-primary" ${!isMyTurn ? 'disabled' : ''}>
           1. 🌾 Cosechar (2 fichas)
@@ -424,39 +556,34 @@ function renderHumanPOVZone(human, isMyTurn) {
 }
 
 function renderActionPromptPanel(human, isMyTurn) {
-  // 1. Si acaba de completar una receta al Cocinar y puede hacer Cierre Inmediato con Coste (descartar 1 ficha)
   if (matchState.awaitingImmediateCloseDecision) {
     const info = matchState.awaitingImmediateCloseDecision;
     return `
-      <div class="action-prompt-panel" style="border-color:#10b981; background:rgba(16,185,129,0.16);">
-        <strong>☁️ ¡Has completado tu ${info.recipe.name} en el Vaso #${info.glassIndex + 1}! ¿Quieres Cierre Inmediato con Coste?</strong>
-        <p class="helper-text">Según el reglamento, puedes descartar 1 ficha cualquiera de tu reserva oculta AHORA MISMO para colocarle la espuma y blindarla al instante, o ahorrar tu ficha y cerrarla gratis en un turno posterior:</p>
-        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      <div class="action-prompt-panel" style="border-color:#10b981; background:rgba(16,185,129,0.18);">
+        <strong>☁️ ¡Receta ${info.recipe.name} completada en tu Vaso #${info.glassIndex + 1}! ¿Cierre Inmediato con Coste?</strong>
+        <p class="helper-text">Elige 1 ficha de tu reserva oculta para descartarla y colocar la ESPUMA ahora mismo, o ahórrate la ficha:</p>
+        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
           ${human.reserve.map((ing, idx) => `
             <button type="button" class="btn btn-primary immediate-close-pay-btn" data-pay-idx="${idx}">
-              ☁️ Descartar [${INGREDIENT_LABELS[ing]}] y Poner Espuma Ahora
+              ☁️ Descartar [${INGREDIENT_ICONS[ing]} ${INGREDIENT_LABELS[ing]}] y Cerrar Ahora
             </button>
           `).join('')}
           <button type="button" id="skipImmediateCloseBtn" class="btn btn-secondary">
-            No gastar ficha (Dejar vaso abierto hasta otro turno)
+            Dejar vaso sin espuma por ahora
           </button>
         </div>
       </div>
     `;
   }
 
-  // 2. Si tiene exceso de fichas (>5) en su reserva al final del turno
   if (matchState.pendingExcessDiscard) {
     return `
-      <div class="action-prompt-panel" style="border-color:#f59e0b; background:rgba(245,158,11,0.16);">
-        <strong>⚠️ Límite de Reserva (Máximo 5 fichas): Tienes ${human.reserve.length} fichas.</strong>
-        <p class="helper-text">Elige qué ficha descartar a la Despensa para terminar tu turno:</p>
-        <div style="display:flex; gap:8px; flex-wrap:wrap;">
-          ${human.reserve.map((ing, idx) => `
-            <button type="button" class="ing-chip ing-${ing} excess-discard-btn" data-discard-idx="${idx}">
-              🗑️ Descartar ${INGREDIENT_LABELS[ing]}
-            </button>
-          `).join('')}
+      <div class="action-prompt-panel" style="border-color:#f59e0b; background:rgba(245,158,11,0.18);">
+        <strong>⚠️ Límite de 5 Fichas en Reserva: Tienes ${human.reserve.length} fichas. Haz clic en la que quieras descartar:</strong>
+        <div style="display:flex; gap:12px; flex-wrap:wrap;">
+          ${human.reserve.map((ing, idx) =>
+            renderCircularToken(ing, '', 'excess-discard-btn', `data-discard-idx="${idx}"`)
+          ).join('')}
         </div>
       </div>
     `;
@@ -471,16 +598,16 @@ function renderActionPromptPanel(human, isMyTurn) {
     return `
       <div class="action-prompt-panel">
         <div class="flex-between">
-          <strong>1. 🌾 Cosechar: Elige 2 fichas (${totalPicked}/2 seleccionadas)</strong>
+          <strong>1. 🌾 Cosechar: Selecciona 2 fichas (${totalPicked}/2 elegidas)</strong>
           <button type="button" class="btn btn-secondary cancel-mode-btn">Cancelar</button>
         </div>
-        <p class="helper-text">Haz clic en hasta 2 fichas del <strong>Mercado de Abastos</strong> arriba, o pulsa el botón para coger a ciegas de la <strong>Despensa</strong>:</p>
+        <p class="helper-text">Haz clic en las fichas del <strong>Mercado de Abastos</strong> o en la <strong>Bolsa de la Despensa</strong>:</p>
         <div style="display:flex; gap:10px; flex-wrap:wrap;">
           <button type="button" id="addPantryPickBtn" class="btn btn-secondary" ${totalPicked >= 2 ? 'disabled' : ''}>
-            🎒 +1 Ficha a ciegas de la Despensa (Seleccionadas: ${pCount})
+            🎒 +1 Ficha a ciegas de la Despensa (${pCount} elegidas)
           </button>
           <button type="button" id="confirmHarvestBtn" class="btn btn-primary" ${totalPicked !== 2 ? 'disabled' : ''}>
-            ✔ Confirmar Cosecha de 2 Fichas
+            ✔ Confirmar Cosecha
           </button>
         </div>
       </div>
@@ -493,18 +620,18 @@ function renderActionPromptPanel(human, isMyTurn) {
     return `
       <div class="action-prompt-panel">
         <div class="flex-between">
-          <strong>2. 🍺 Cocinar: ${selTile ? `Ficha elegida: [${INGREDIENT_LABELS[selTile]}]` : 'Haz clic primero en 1 ficha de tu Reserva Oculta'}</strong>
+          <strong>2. 🍺 Cocinar: ${selTile ? `Ficha seleccionada: [${INGREDIENT_ICONS[selTile]} ${INGREDIENT_LABELS[selTile]}]` : 'Selecciona 1 ficha de tu Reserva'}</strong>
           <button type="button" class="btn btn-secondary cancel-mode-btn">Cancelar</button>
         </div>
         ${selTile !== null
           ? `<div style="display:flex; gap:10px; flex-wrap:wrap;">
                ${human.glasses.map((g, gIdx) => `
                  <button type="button" class="btn btn-primary confirm-cook-glass-btn" data-glass-idx="${gIdx}" ${g.closed ? 'disabled' : ''}>
-                   🥃 Echar en Vaso #${gIdx + 1} (${g.ingredients.length} ing.)
+                   🥃 Echar en Vaso #${gIdx + 1} (${g.ingredients.length} fichas)
                  </button>
                `).join('')}
              </div>`
-          : '<p class="helper-text">Selecciona una ficha de tu reserva oculta abajo para elegir en qué vaso echarla.</p>'}
+          : ''}
       </div>
     `;
   }
@@ -515,11 +642,11 @@ function renderActionPromptPanel(human, isMyTurn) {
     return `
       <div class="action-prompt-panel">
         <div class="flex-between">
-          <strong>🔄 Cambio Rápido 2×1 Gratis: Elige 2 fichas de tu Reserva (${rList.length}/2) y 1 del Mercado (${mIdx !== undefined ? '1/1' : '0/1'})</strong>
+          <strong>🔄 Cambio Rápido 2×1 Gratis: Selecciona 2 fichas de tu Reserva (${rList.length}/2) y 1 del Mercado (${mIdx !== undefined ? '1/1' : '0/1'})</strong>
           <button type="button" class="btn btn-secondary cancel-mode-btn">Cancelar</button>
         </div>
         <button type="button" id="confirmFreeSwapBtn" class="btn btn-primary" ${(rList.length !== 2 || mIdx === undefined) ? 'disabled' : ''}>
-          ✔ Ejecutar Cambio Rápido 2×1 Gratis
+          ✔ Confirmar Cambio 2×1 Gratis
         </button>
       </div>
     `;
@@ -534,13 +661,13 @@ function renderActionPromptPanel(human, isMyTurn) {
           <strong>3. 🤝 Comerciar (Trueque con un rival IA)</strong>
           <button type="button" class="btn btn-secondary cancel-mode-btn">Cancelar</button>
         </div>
-        <p class="helper-text">1.º Haz clic en la ficha de tu Reserva Oculta que ofreces (${selTile ? `Ofreces: <strong>${INGREDIENT_LABELS[selTile]}</strong>` : 'Ninguna seleccionada'}). 2.º Elige a qué IA y qué ingrediente pides:</p>
         <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+          <span class="helper-text">Ofreces: <strong>${selTile ? INGREDIENT_LABELS[selTile] : 'Haz clic en 1 ficha tuya'}</strong></span>
           <select id="tradeTargetAISelect" class="input-select-sm">
             ${matchState.players.slice(1).map(ai => `<option value="${ai.seat}">${ai.name}</option>`).join('')}
           </select>
           <select id="tradeRequestedIngSelect" class="input-select-sm">
-            ${Object.entries(INGREDIENT_LABELS).map(([id, label]) => `<option value="${id}">Pedir: ${label}</option>`).join('')}
+            ${Object.entries(INGREDIENT_LABELS).map(([id, label]) => `<option value="${id}">Pides: ${INGREDIENT_ICONS[id]} ${label}</option>`).join('')}
           </select>
           <button type="button" id="confirmTradeBtn" class="btn btn-primary" ${selTile === null ? 'disabled' : ''}>
             🤝 Proponer Trueque
@@ -557,19 +684,18 @@ function renderActionPromptPanel(human, isMyTurn) {
     return `
       <div class="action-prompt-panel">
         <div class="flex-between">
-          <strong>4. 🃏 Jugar Carta: [${card.name}]</strong>
+          <strong>4. 🃏 Jugar Carta: [${CARD_ICONS[card.id] || '🃏'} ${card.name}]</strong>
           <button type="button" class="btn btn-secondary cancel-mode-btn">Cancelar</button>
         </div>
-        <p class="helper-text">${card.text}</p>
         <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
           ${needsRivalTarget
-            ? `<label class="helper-text">Objetivo:</label>
+            ? `<label class="helper-text">Contra el rival:</label>
                <select id="cardTargetSeatSelect" class="input-select-sm">
                  ${matchState.players.slice(1).map(ai => `<option value="${ai.seat}">${ai.name}</option>`).join('')}
                </select>`
             : ''}
           <button type="button" id="confirmPlayCardBtn" class="btn btn-primary">
-            ✔ Confirmar y Jugar [${card.name}]
+            ✔ Jugar [${card.name}]
           </button>
         </div>
       </div>
@@ -583,9 +709,8 @@ function renderGameOverBanner(state) {
   return `
     <div class="game-dedicated-banner" style="border-color:#10b981; background:linear-gradient(135deg, rgba(16,185,129,0.22), rgba(99,102,241,0.16));">
       <div>
-        <span class="badge badge-ok">Partida Finalizada — Revisión de Cartas de Bar y Desempate</span>
+        <span class="badge badge-ok">Partida Finalizada — Cartas de Bar Reveladas y Triple Desempate</span>
         <h3 style="font-size:22px; margin-top:4px;">🏆 Ganador: ${state.winner.name}</h3>
-        <p class="helper-text">Clasificación final aplicando el triple criterio oficial de desempate (IPAs cerradas > Fichas en reserva > Cartas en mano > Menú de 10 ing. vs 9 ing.):</p>
         <div style="margin-top:10px; display:flex; flex-direction:column; gap:6px;">
           ${state.ranking.map((p, idx) => `
             <div class="spec-pill">
@@ -604,12 +729,28 @@ function renderGameOverBanner(state) {
 
 function bindControlEvents() {
   const select = document.getElementById('playtablePlayerCountSelect');
+  const speedSelect = document.getElementById('aiSpeedSelect');
   const restartBtn = document.getElementById('restartPlaytableBtn');
+  const stepAiBtn = document.getElementById('stepNextAiBtn');
+
   if (select) {
     select.onchange = () => startNewMatch(Number(select.value));
   }
+  if (speedSelect) {
+    speedSelect.onchange = () => {
+      aiSpeedMs = Number(speedSelect.value);
+      if (aiTimer) clearTimeout(aiTimer);
+      renderPlaytable();
+    };
+  }
   if (restartBtn) {
     restartBtn.onclick = () => startNewMatch(matchState ? matchState.numPlayers : 4);
+  }
+  if (stepAiBtn) {
+    stepAiBtn.onclick = () => {
+      executeAITurn(matchState);
+      renderPlaytable();
+    };
   }
 }
 
@@ -625,7 +766,6 @@ function bindDraftEvents() {
 function bindGameplayEvents(isMyTurn) {
   const human = matchState.players[0];
 
-  // Botones de decisión de Cierre Inmediato con Coste
   document.querySelectorAll('.immediate-close-pay-btn').forEach(btn => {
     btn.onclick = () => {
       resolveImmediateCloseDecision(matchState, human, Number(btn.dataset.payIdx));
@@ -642,7 +782,6 @@ function bindGameplayEvents(isMyTurn) {
     };
   }
 
-  // Botones de descarte por límite de 5 fichas
   document.querySelectorAll('.excess-discard-btn').forEach(btn => {
     btn.onclick = () => {
       discardExcessTile(matchState, human, Number(btn.dataset.discardIdx));
@@ -652,7 +791,6 @@ function bindGameplayEvents(isMyTurn) {
 
   if (!isMyTurn) return;
 
-  // Cancelar modo contextual
   document.querySelectorAll('.cancel-mode-btn').forEach(btn => {
     btn.onclick = () => {
       uiMode = null;
@@ -661,7 +799,6 @@ function bindGameplayEvents(isMyTurn) {
     };
   });
 
-  // Iniciar Cambio Rápido 2x1 Gratis
   const freeSwapBtn = document.getElementById('startFreeSwapBtn');
   if (freeSwapBtn) {
     freeSwapBtn.onclick = () => {
@@ -671,7 +808,6 @@ function bindGameplayEvents(isMyTurn) {
     };
   }
 
-  // Botones de las Acciones Principales
   const btnHarvest = document.getElementById('btnActionHarvest');
   if (btnHarvest) {
     btnHarvest.onclick = () => {
@@ -708,7 +844,6 @@ function bindGameplayEvents(isMyTurn) {
     };
   }
 
-  // Cerrar IPA Gratis
   document.querySelectorAll('.close-free-btn').forEach(btn => {
     btn.onclick = () => {
       actionCloseIpaFree(matchState, human, Number(btn.dataset.glassIdx));
@@ -717,7 +852,6 @@ function bindGameplayEvents(isMyTurn) {
     };
   });
 
-  // Iniciar Jugar Carta de Acción Cervecera
   document.querySelectorAll('.play-card-init-btn').forEach(btn => {
     btn.onclick = () => {
       uiMode = 'PLAY_CARD';
@@ -726,7 +860,25 @@ function bindGameplayEvents(isMyTurn) {
     };
   });
 
-  // Clic en fichas del Mercado de Abastos
+  // Clic directo en la Bolsa de la Despensa
+  const pantryBag = document.getElementById('clickablePantryBag');
+  if (pantryBag) {
+    pantryBag.onclick = () => {
+      if (uiMode !== 'HARVEST') {
+        uiMode = 'HARVEST';
+        uiSelection = { marketIndices: [], pantryCount: 1 };
+        renderPlaytable();
+        return;
+      }
+      const total = (uiSelection.marketIndices || []).length + (uiSelection.pantryCount || 0);
+      if (total < 2) {
+        uiSelection.pantryCount = (uiSelection.pantryCount || 0) + 1;
+        renderPlaytable();
+      }
+    };
+  }
+
+  // Clic en fichas circulares del Mercado de Abastos
   document.querySelectorAll('[data-market-idx]').forEach(chip => {
     chip.onclick = () => {
       const idx = Number(chip.dataset.marketIdx);
@@ -752,7 +904,7 @@ function bindGameplayEvents(isMyTurn) {
     };
   });
 
-  // Clic en fichas de la Reserva Oculta del jugador
+  // Clic en fichas circulares de tu Reserva Oculta
   document.querySelectorAll('[data-reserve-idx]').forEach(chip => {
     chip.onclick = () => {
       const idx = Number(chip.dataset.reserveIdx);
@@ -775,7 +927,6 @@ function bindGameplayEvents(isMyTurn) {
     };
   });
 
-  // Botones de confirmación dentro de los paneles contextuales
   const addPantryBtn = document.getElementById('addPantryPickBtn');
   if (addPantryBtn) {
     addPantryBtn.onclick = () => {

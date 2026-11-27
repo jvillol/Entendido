@@ -40,6 +40,28 @@ export const INGREDIENT_LABELS = {
   agua_pura: 'Agua Pura'
 };
 
+export const INGREDIENT_ICONS = {
+  lupulo: '🌿',
+  malta: '🌾',
+  levadura: '🧪',
+  fruta_tropical: '🍊',
+  lactosa: '🥛',
+  cafe_cacao: '☕',
+  pino_resina: '🌲',
+  agua_pura: '💧'
+};
+
+export const CARD_ICONS = {
+  cata_ciegas: '🕵️',
+  contaminacion: '☣️',
+  trasvase: '🔄',
+  dry_hopping: '🌿',
+  maestro_cervecero: '👑',
+  inspeccion_sanitaria: '🔍',
+  fermentacion_acelerada: '⚡',
+  resaca: '🤕'
+};
+
 /**
  * Crea un estado de partida nuevo para N jugadores (1 Humano + N-1 IAs).
  */
@@ -134,6 +156,7 @@ export function createInteractiveMatch(numPlayers = 4) {
     players,
     winner: null,
     ranking: [],
+    lastVisualEvent: null,
     log: [
       `🍺 ¡Partida de ${numPlayers} jugadores preparada! Jugador Inicial: ${players[startingSeat].name} (empieza con 2 fichas ocultas; el resto con 3 fichas).`,
       `📋 Elige 1 de tus 2 Cartas de Bar secretas para comenzar.`
@@ -141,6 +164,14 @@ export function createInteractiveMatch(numPlayers = 4) {
   };
 
   return state;
+}
+
+function recordVisualEvent(state, eventObj) {
+  state.lastVisualEvent = {
+    id: Date.now() + Math.random(),
+    round: state.round,
+    ...eventObj
+  };
 }
 
 export function getActivePlayer(state) {
@@ -287,6 +318,14 @@ export function executeFreeMarketSwap(state, player, reserveIdx1, reserveIdx2, m
   replenishMarket(state);
 
   state.usedFreeMarketSwap = true;
+  recordVisualEvent(state, {
+    type: 'FREE_SWAP',
+    actorSeat: player.seat,
+    actorName: player.name,
+    title: '🔄 Cambio Rápido 2×1 en Mercado',
+    subtitle: `${player.name} devuelve 2 fichas a la Despensa y coge 1 del Mercado`,
+    tiles: [{ id: taken, label: INGREDIENT_LABELS[taken], source: 'Mercado' }]
+  });
   addLog(state, `🔄 [Cambio Rápido 2×1 Gratis] ${player.name} devuelve 2 fichas a la Despensa y toma [${INGREDIENT_LABELS[taken]}] del Mercado.`);
   return { ok: true };
 }
@@ -297,6 +336,7 @@ export function executeFreeMarketSwap(state, player, reserveIdx1, reserveIdx2, m
 export function actionHarvest(state, player, picks) {
   // picks es un array de 2 elementos: { source: 'market', index: i } o { source: 'pantry' }
   const drawnNames = [];
+  const visualTiles = [];
   // Procesar primero mercado de mayor a menor índice para no desplazar
   const marketPicks = picks
     .filter(p => p.source === 'market')
@@ -308,6 +348,7 @@ export function actionHarvest(state, player, picks) {
       const tile = state.market.splice(mIdx, 1)[0];
       player.reserve.push(tile);
       drawnNames.push(`${INGREDIENT_LABELS[tile]} (Mercado)`);
+      visualTiles.push({ id: tile, label: INGREDIENT_LABELS[tile], source: 'Mercado', visible: true });
     }
   }
 
@@ -316,11 +357,25 @@ export function actionHarvest(state, player, picks) {
     if (state.pantry.length > 0) {
       const tile = state.pantry.pop();
       player.reserve.push(tile);
-      drawnNames.push(player.isHuman ? `${INGREDIENT_LABELS[tile]} (Despensa)` : '1 a ciegas (Despensa)');
+      drawnNames.push(player.isHuman ? `${INGREDIENT_LABELS[tile]} (Despensa)` : '1 ficha oculta (Despensa)');
+      visualTiles.push({
+        id: tile,
+        label: player.isHuman ? INGREDIENT_LABELS[tile] : 'Ficha a ciegas',
+        source: 'Despensa',
+        visible: player.isHuman
+      });
     }
   }
 
   replenishMarket(state);
+  recordVisualEvent(state, {
+    type: 'HARVEST',
+    actorSeat: player.seat,
+    actorName: player.name,
+    title: '🌾 Cosechar Ingredientes',
+    subtitle: `${player.name} coge ${drawnNames.join(' + ')}`,
+    tiles: visualTiles
+  });
   addLog(state, `🌾 [Cosechar] ${player.name} coge: ${drawnNames.join(' y ')}.`);
   return finishPlayerAction(state, player);
 }
@@ -345,6 +400,18 @@ export function actionCook(state, player, reserveIndex, glassIndex, cleanTargetI
     const removed = glass.ingredients.splice(removeIdx, 1)[0];
     state.pantry.unshift('agua_pura', removed);
     shuffleArray(state.pantry);
+    recordVisualEvent(state, {
+      type: 'COOK_CLEAN',
+      actorSeat: player.seat,
+      actorName: player.name,
+      glassIndex,
+      title: '💧 Limpieza con Agua Pura',
+      subtitle: `${player.name} retira [${INGREDIENT_LABELS[removed]}] de su Vaso #${glassIndex + 1}`,
+      tiles: [
+        { id: 'agua_pura', label: 'Agua Pura', source: 'Vaso', visible: true },
+        { id: removed, label: INGREDIENT_LABELS[removed], source: 'Eliminado', visible: true }
+      ]
+    });
     addLog(state, `💧 [Cocinar - Agua Pura] ${player.name} limpia [${INGREDIENT_LABELS[removed]}] de su Vaso #${glassIndex + 1}.`);
     return finishPlayerAction(state, player);
   }
@@ -352,6 +419,15 @@ export function actionCook(state, player, reserveIndex, glassIndex, cleanTargetI
   // Colocar 1 ingrediente normal boca arriba en el vaso
   player.reserve.splice(reserveIndex, 1);
   glass.ingredients.push(tile);
+  recordVisualEvent(state, {
+    type: 'COOK',
+    actorSeat: player.seat,
+    actorName: player.name,
+    glassIndex,
+    title: `🍺 Cocinar en Vaso #${glassIndex + 1}`,
+    subtitle: `${player.name} echa [${INGREDIENT_LABELS[tile]}] dentro de su Vaso #${glassIndex + 1}`,
+    tiles: [{ id: tile, label: INGREDIENT_LABELS[tile], source: `Vaso #${glassIndex + 1}`, visible: true }]
+  });
   addLog(state, `🍺 [Cocinar] ${player.name} añade [${INGREDIENT_LABELS[tile]}] a su Vaso #${glassIndex + 1}.`);
 
   // Comprobar si acaba de completar una receta de su Carta de Bar
@@ -441,17 +517,40 @@ export function actionPlayBrewmasterCard(state, player, handIndex, params = {}) 
     if (aguaIdx !== -1) {
       targetPlayer.reserve.splice(aguaIdx, 1);
       state.pantry.unshift('agua_pura');
+      recordVisualEvent(state, {
+        type: 'COUNTER_SHIELD',
+        actorSeat: targetPlayer.seat,
+        actorName: targetPlayer.name,
+        targetSeat: player.seat,
+        card,
+        title: `🛡️ ¡Escudo de Agua Pura!`,
+        subtitle: `${targetPlayer.name} descarta Agua Pura y bloquea [${card.name}] de ${player.name}`,
+        tiles: [{ id: 'agua_pura', label: 'Agua Pura (Escudo)', source: 'Defensa', visible: true }]
+      });
       addLog(state, `🛡️ ¡${targetPlayer.name} descarta [Agua Pura] desde su reserva como ESCUDO y anula [${card.name}] de ${player.name}!`);
       replenishHandAtEnd(state, player);
       return finishPlayerAction(state, player);
     } else if (mcIdx !== -1) {
       const counter = targetPlayer.hand.splice(mcIdx, 1)[0];
       state.actionDiscard.push(counter);
+      recordVisualEvent(state, {
+        type: 'COUNTER_CARD',
+        actorSeat: targetPlayer.seat,
+        actorName: targetPlayer.name,
+        targetSeat: player.seat,
+        card: counter,
+        blockedCard: card,
+        title: `👑 ¡Anulada con Maestro Cervecero!`,
+        subtitle: `${targetPlayer.name} juega [Maestro Cervecero] fuera de turno y anula [${card.name}] de ${player.name}`
+      });
       addLog(state, `👑 ¡${targetPlayer.name} juega [Maestro Cervecero] fuera de turno y ANULA [${card.name}] de ${player.name}!`);
       replenishHandAtEnd(state, player);
       return finishPlayerAction(state, player);
     }
   }
+
+  let cardEffectSummary = '';
+  let affectedTiles = [];
 
   switch (card.id) {
     case 'cata_ciegas': {
@@ -459,6 +558,13 @@ export function actionPlayBrewmasterCard(state, player, handIndex, params = {}) 
         const randIdx = Math.floor(Math.random() * targetPlayer.reserve.length);
         const stolen = targetPlayer.reserve.splice(randIdx, 1)[0];
         player.reserve.push(stolen);
+        cardEffectSummary = `${player.name} roba 1 ficha al azar de la reserva oculta de ${targetPlayer.name}`;
+        affectedTiles = [{
+          id: stolen,
+          label: (player.isHuman || targetPlayer.isHuman) ? INGREDIENT_LABELS[stolen] : 'Ficha Robada',
+          source: `De ${targetPlayer.name}`,
+          visible: player.isHuman || targetPlayer.isHuman
+        }];
         addLog(state, `🕵️ [Cata a Ciegas] ${player.name} roba 1 ficha al azar de la reserva de ${targetPlayer.name}${player.isHuman ? ` ([${INGREDIENT_LABELS[stolen]}])` : ''}.`);
       }
       break;
@@ -470,6 +576,8 @@ export function actionPlayBrewmasterCard(state, player, handIndex, params = {}) 
         const removed = tP.glasses[gIdx].ingredients.pop();
         state.pantry.unshift(removed);
         shuffleArray(state.pantry);
+        cardEffectSummary = `${player.name} destruye [${INGREDIENT_LABELS[removed]}] del Vaso #${gIdx + 1} de ${tP.name}`;
+        affectedTiles = [{ id: removed, label: INGREDIENT_LABELS[removed], source: `Vaso #${gIdx + 1} de ${tP.name}`, visible: true }];
         addLog(state, `☣️ [Contaminación] ${player.name} elimina [${INGREDIENT_LABELS[removed]}] del Vaso #${gIdx + 1} de ${tP.name}.`);
       }
       break;
@@ -483,6 +591,8 @@ export function actionPlayBrewmasterCard(state, player, handIndex, params = {}) 
       if (fromP && fromGIdx !== -1 && toP && toGIdx !== -1 && !fromP.glasses[fromGIdx].closed && !toP.glasses[toGIdx].closed && fromP.glasses[fromGIdx].ingredients.length > 0) {
         const moved = fromP.glasses[fromGIdx].ingredients.pop();
         toP.glasses[toGIdx].ingredients.push(moved);
+        cardEffectSummary = `${player.name} mueve [${INGREDIENT_LABELS[moved]}] del Vaso #${fromGIdx + 1} de ${fromP.name} al Vaso #${toGIdx + 1} de ${toP.name}`;
+        affectedTiles = [{ id: moved, label: INGREDIENT_LABELS[moved], source: `${fromP.name} → ${toP.name}`, visible: true }];
         addLog(state, `🔄 [Trasvase] ${player.name} mueve [${INGREDIENT_LABELS[moved]}] del Vaso #${fromGIdx + 1} de ${fromP.name} al Vaso #${toGIdx + 1} de ${toP.name}.`);
       }
       break;
@@ -497,9 +607,11 @@ export function actionPlayBrewmasterCard(state, player, handIndex, params = {}) 
             player.reserve.splice(lupIdx, 1);
             targetG.ingredients.push('lupulo');
             added++;
+            affectedTiles.push({ id: 'lupulo', label: 'Lúpulo', source: 'Dry Hopping', visible: true });
           }
         }
       }
+      cardEffectSummary = `${player.name} añade ${added} ficha(s) de Lúpulo a sus vasos abiertos`;
       addLog(state, `🌿 [Dry Hopping Extra] ${player.name} añade ${added} ficha(s) de Lúpulo a sus vasos abiertos.`);
       break;
     }
@@ -508,6 +620,8 @@ export function actionPlayBrewmasterCard(state, player, handIndex, params = {}) 
         const discarded = targetPlayer.reserve.pop();
         state.pantry.unshift(discarded);
         shuffleArray(state.pantry);
+        cardEffectSummary = `${player.name} mira la reserva de ${targetPlayer.name} y le descarta [${INGREDIENT_LABELS[discarded]}]`;
+        affectedTiles = [{ id: discarded, label: INGREDIENT_LABELS[discarded], source: `Descartada a ${targetPlayer.name}`, visible: true }];
         addLog(state, `🔍 [Inspección Sanitaria] ${player.name} inspecciona la reserva de ${targetPlayer.name} y le descarta [${INGREDIENT_LABELS[discarded]}].`);
       }
       break;
@@ -520,23 +634,27 @@ export function actionPlayBrewmasterCard(state, player, handIndex, params = {}) 
           player.glasses[gIdx].closed = true;
           player.glasses[gIdx].matchedRecipeId = rec.id;
           closedAny = true;
+          cardEffectSummary = `¡${player.name} corona con ESPUMA su Vaso #${gIdx + 1} (${rec.name}) ahorrando 1 ingrediente!`;
           addLog(state, `⚡ [Fermentación Acelerada] ¡${player.name} cierra con ESPUMA su Vaso #${gIdx + 1} (${rec.name}) ahorrando 1 ingrediente!`);
           checkThirdIpaTrigger(state, player);
           break;
         }
       }
       if (!closedAny) {
+        cardEffectSummary = `${player.name} juega Fermentación Acelerada`;
         addLog(state, `⚡ [Fermentación Acelerada] ${player.name} la juega pero ningún vaso estaba a falta de 1 ingrediente.`);
       }
       break;
     }
     case 'maestro_cervecero': {
-      // Acción gratuita extra en su turno: roba 2 fichas de la Despensa
       for (let i = 0; i < 2; i++) {
         if (state.pantry.length > 0 && player.reserve.length < 5) {
-          player.reserve.push(state.pantry.pop());
+          const t = state.pantry.pop();
+          player.reserve.push(t);
+          affectedTiles.push({ id: t, label: player.isHuman ? INGREDIENT_LABELS[t] : 'Ficha Extra', source: 'Despensa', visible: player.isHuman });
         }
       }
+      cardEffectSummary = `${player.name} usa Maestro Cervecero como acción gratuita extra y roba 2 fichas`;
       addLog(state, `👑 [Maestro Cervecero] ${player.name} realiza una acción gratuita extra en su turno.`);
       break;
     }
@@ -556,10 +674,22 @@ export function actionPlayBrewmasterCard(state, player, handIndex, params = {}) 
           if (state.actionDeck.length > 0) p.hand.push(state.actionDeck.pop());
         }
       }
+      cardEffectSummary = `¡Todos los rivales descartan sus Cartas de Acción y roban 2 nuevas!`;
       addLog(state, `🤕 [¡RESACA!] ${player.name} obliga a todos los rivales a descartar sus Cartas de Acción y robar 2 nuevas.`);
       break;
     }
   }
+
+  recordVisualEvent(state, {
+    type: 'PLAY_CARD',
+    actorSeat: player.seat,
+    actorName: player.name,
+    targetSeat: targetPlayer ? targetPlayer.seat : null,
+    card,
+    title: `🃏 ${player.name} juega [${card.name}]`,
+    subtitle: cardEffectSummary || card.text,
+    tiles: affectedTiles
+  });
 
   replenishHandAtEnd(state, player);
   return finishPlayerAction(state, player);
@@ -582,6 +712,14 @@ export function actionRefreshMarket(state, player, chosenNewMarketIndex = 0) {
   replenishMarket(state);
 
   addLog(state, `♻️ [Renovar el Mercado] ${player.name} renueva las 5 fichas del Mercado y toma [${INGREDIENT_LABELS[taken]}].`);
+  recordVisualEvent(state, {
+    type: 'REFRESH_MARKET',
+    actorSeat: player.seat,
+    actorName: player.name,
+    title: '♻️ Renovar el Mercado',
+    subtitle: `${player.name} descarta las 5 fichas del Mercado, saca 5 nuevas y coge [${INGREDIENT_LABELS[taken]}]`,
+    tiles: [{ id: taken, label: INGREDIENT_LABELS[taken], source: 'Nuevo Mercado', visible: true }]
+  });
   return finishPlayerAction(state, player);
 }
 
@@ -597,6 +735,14 @@ export function actionCloseIpaFree(state, player, glassIndex) {
   glass.closed = true;
   glass.matchedRecipeId = rec.id;
 
+  recordVisualEvent(state, {
+    type: 'CLOSE_IPA',
+    actorSeat: player.seat,
+    actorName: player.name,
+    glassIndex,
+    title: `☁️ ¡IPA Cerrada con Espuma!`,
+    subtitle: `${player.name} corona con algodón (espuma) su Vaso #${glassIndex + 1} (${rec.name})`
+  });
   addLog(state, `☁️ [Cerrar IPA Gratis] ¡${player.name} coloca la ESPUMA en su Vaso #${glassIndex + 1} (${rec.name})!`);
   checkThirdIpaTrigger(state, player);
   return finishPlayerAction(state, player);
@@ -675,8 +821,27 @@ export function executeAITurn(state) {
       state.pantry.unshift(spent);
       ai.glasses[glassIdx].closed = true;
       ai.glasses[glassIdx].matchedRecipeId = matched.id;
+      recordVisualEvent(state, {
+        type: 'CLOSE_IPA',
+        actorSeat: ai.seat,
+        actorName: ai.name,
+        glassIndex: glassIdx,
+        title: `🍺+☁️ Cocinar y Cierre Inmediato`,
+        subtitle: `${ai.name} añade [${INGREDIENT_LABELS[tile]}], descarta 1 ficha de su reserva y blinda con ESPUMA su Vaso #${glassIdx + 1} (${matched.name})`,
+        tiles: [{ id: tile, label: INGREDIENT_LABELS[tile], source: `Vaso #${glassIdx + 1}`, visible: true }]
+      });
       addLog(state, `☁️ [Cierre Inmediato] ¡${ai.name} descarta 1 ficha de su reserva y blinda con ESPUMA su Vaso #${glassIdx + 1} (${matched.name})!`);
       checkThirdIpaTrigger(state, ai);
+    } else {
+      recordVisualEvent(state, {
+        type: 'COOK',
+        actorSeat: ai.seat,
+        actorName: ai.name,
+        glassIndex: glassIdx,
+        title: `🍺 ${ai.name} cocina en su Vaso #${glassIdx + 1}`,
+        subtitle: `Coloca la ficha circular [${INGREDIENT_LABELS[tile]}] boca arriba dentro del Vaso #${glassIdx + 1}`,
+        tiles: [{ id: tile, label: INGREDIENT_LABELS[tile], source: `Vaso #${glassIdx + 1}`, visible: true }]
+      });
     }
     finishPlayerAction(state, ai);
     return state;
