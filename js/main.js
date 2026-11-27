@@ -15,6 +15,7 @@ import {
   renderDedicatedGameSection,
   getGameMetadata
 } from './ui/gameSections.js';
+import { initPlaytableSection } from './ui/playtableUI.js';
 
 let currentGameId = 'la_tercera_ipa';
 
@@ -23,6 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initSidebarControls();
   initTabs();
   initRulebookEditor();
+  initPlaytableSection();
 
   // Seleccionar la sección inicial del juego y ejecutar su simulación
   selectGameSection(currentGameId);

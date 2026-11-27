@@ -113,9 +113,12 @@ export function renderDedicatedGameSection(gameModule, onRunSimulationForCounts)
           <div class="spec-pill"><strong>Acciones por Turno:</strong> ${gameModule.actions.length} opciones</div>
         </div>
       </div>
-      <div style="display:flex; flex-direction:column; gap:8px; min-width:220px;">
+      <div style="display:flex; flex-direction:column; gap:8px; min-width:230px;">
         <button type="button" id="simRecommendedCountsBtn" class="btn btn-primary">
           ▶ Simular Rango Oficial (${meta.recommendedCounts.join(', ')}J)
+        </button>
+        <button type="button" id="openPlayVsAiFromBannerBtn" class="btn btn-secondary">
+          🎮 Jugar Partida vs IA (POV Jugador)
         </button>
       </div>
     </div>
@@ -159,6 +162,14 @@ export function renderDedicatedGameSection(gameModule, onRunSimulationForCounts)
   if (simBtn && onRunSimulationForCounts) {
     simBtn.addEventListener('click', () => {
       onRunSimulationForCounts(meta.recommendedCounts);
+    });
+  }
+
+  const playVsAiBtn = document.getElementById('openPlayVsAiFromBannerBtn');
+  if (playVsAiBtn) {
+    playVsAiBtn.addEventListener('click', () => {
+      const tabBtn = document.querySelector('.tab-btn[data-tab="tab-play-vs-ai"]');
+      if (tabBtn) tabBtn.click();
     });
   }
 }

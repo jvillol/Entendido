@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="css/layout.css" />
   <link rel="stylesheet" href="css/components.css" />
   <link rel="stylesheet" href="css/sections.css" />
+  <link rel="stylesheet" href="css/playtable.css" />
 </head>
 <body>
   <div class="app-shell">
@@ -103,6 +104,7 @@
       <!-- Navegación por Pestañas -->
       <nav class="tabs-nav" aria-label="Vistas del análisis">
         <button class="tab-btn active" data-tab="tab-game-section">🎯 Sección del Juego</button>
+        <button class="tab-btn" data-tab="tab-play-vs-ai">🎮 Jugar vs IA (POV Jugador)</button>
         <button class="tab-btn" data-tab="tab-balance">⚖️ Equilibrio y Escalado</button>
         <button class="tab-btn" data-tab="tab-fun">🎢 Ritmo y Entretenimiento</button>
         <button class="tab-btn" data-tab="tab-rules">🔍 Auditoría de Reglas y Mecánicas</button>
@@ -116,6 +118,11 @@
         <!-- TAB 0: SECCIÓN ESPECÍFICA DEL JUEGO -->
         <section id="tab-game-section" class="tab-panel active">
           <div id="dedicatedGameSectionContainer"></div>
+        </section>
+
+        <!-- TAB JUGAR VS IA (POV JUGADOR) -->
+        <section id="tab-play-vs-ai" class="tab-panel">
+          <div id="interactivePlaytableRoot"></div>
         </section>
 
         <!-- TAB 1: EQUILIBRIO Y ESCALADO -->
